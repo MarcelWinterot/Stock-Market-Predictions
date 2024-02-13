@@ -6,4 +6,6 @@
 
 ### 3. Run the prepare.py
 
+### 3.1. Alternatively if you want to use just a few stocks instead of the whole dataset run limited_prepare.py and select the stocks you want
+
 ### 4. After that run main.py
