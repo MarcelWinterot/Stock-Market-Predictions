@@ -21,7 +21,7 @@ def load_data(file):
 
 
 def main():
-    selected_stocks = "AAPL", "GOOGL"
+    selected_stocks = "AAPL"
     files = [os.path.join(data_dir, file) for file in os.listdir(
         data_dir) if file.split('.')[0] in selected_stocks]
 
