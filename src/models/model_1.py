@@ -15,8 +15,26 @@ import torch.nn.functional as F
 from utils import RNNBlock, Time2Vec
 
 
+class MLP_Small(nn.Module):
+    def __init__(self, activation, dropout_rate) -> None:
+        super(MLP_Small, self).__init__()
+        self.lienar_1 = nn.Linear(250, 100)
+        self.lienar_2 = nn.Linear(100, 25)
+        self.lienar_3 = nn.Linear(25, 1)
+
+        self.activation = activation
+        self.dropout = nn.Dropout(dropout_rate)
+
+    def forward(self, X):
+        X = self.dropout(self.activation(self.lienar_1(X)))
+        X = self.dropout(self.activation(self.lienar_2(X)))
+        X = self.lienar_3(X)
+
+        return X
+
+
 class Model_1_Small(nn.Module):
-    def __init__(self, num_stocks: int, starting_channels: int = 15) -> None:
+    def __init__(self, num_stocks: int, starting_channels: int = 15, use_time2vec: bool = True) -> None:
         super(Model_1_Small, self).__init__()
         self.activation = nn.ReLU()
         self.bidirectional = False
@@ -26,16 +44,18 @@ class Model_1_Small(nn.Module):
         self.num_stocks = num_stocks
         self.starting_channels = starting_channels
 
+        self.use_time2vec = use_time2vec
+
         self.rnn_1 = RNNBlock(
-            self.activation, starting_channels, 30, 60, 1, self.bidirectional, self.dropout, self.use_norm)
+            self.activation, starting_channels, 30, 60, 1, self.bidirectional, self.dropout, self.use_norm, self.use_time2vec)
         self.rnn_2 = RNNBlock(
-            self.activation, 60, 120, 240, 1, self.bidirectional, self.dropout, self.use_norm)
+            self.activation, 60, 120, 240, 1, self.bidirectional, self.dropout, self.use_norm, self.use_time2vec)
         self.rnn_3 = RNNBlock(
-            self.activation, 240, 300, 300, 1, self.bidirectional, self.dropout, self.use_norm)
+            self.activation, 240, 300, 300, 1, self.bidirectional, self.dropout, self.use_norm, self.use_time2vec)
         self.rnn_4 = RNNBlock(
-            self.activation, 300, 300, 300, 2, self.bidirectional, self.dropout, self.use_norm)
+            self.activation, 300, 300, 300, 2, self.bidirectional, self.dropout, self.use_norm, self.use_time2vec)
         self.rnn_5 = RNNBlock(
-            self.activation, 300, 100, 25, 1, self.bidirectional, self.dropout, self.use_norm)
+            self.activation, 300, 100, 25, 1, self.bidirectional, self.dropout, self.use_norm, self.use_time2vec)
 
         self.RNNS = nn.ModuleList(
             [self.rnn_1, self.rnn_2, self.rnn_3, self.rnn_4, self.rnn_5])
@@ -49,14 +69,23 @@ class Model_1_Small(nn.Module):
         self.time2vecs = nn.ModuleList(
             [self.time2vec_1, self.time2vec_2, self.time2vec_3, self.time2vec_4, self.time2vec_5])
 
+        self.flatten = nn.Flatten()
+
+        self.mlp = MLP_Small(self.activation, self.dropout)
+
         self.name_embedding = nn.Embedding(num_stocks, 1)
 
     def forward(self, X):
-        X[0] = self.name_embedding(
-            X[0].long()).reshape(-1, 1, self.starting_channels)
+        X[:, 0] = self.name_embedding(
+            X[:, 0].long()).squeeze(2)
 
         for rnn, time2vec in zip(self.RNNS, self.time2vecs):
-            X = time2vec(X)
+            if self.use_time2vec:
+                X = time2vec(X)
             X = rnn(X)
+
+        X = self.flatten(X)
+
+        X = self.mlp(X)
 
         return X

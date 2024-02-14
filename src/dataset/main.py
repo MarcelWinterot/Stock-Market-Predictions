@@ -61,8 +61,10 @@ X = df[['name', 'Open', 'High', 'Low', 'Adj Close',
         'Volume', 'day', 'month', 'year', 'weekday']]
 y = df['Close']
 
-X = torch.tensor(X.values, dtype=torch.float64)
-y = torch.tensor(y.values, dtype=torch.float64)
+X = torch.tensor(X.values, dtype=torch.float32)
+y = torch.tensor(y.values, dtype=torch.float32)
+
+y = y.reshape(-1, 1)
 
 torch.save(X, 'src/dataset/X.pt')
 torch.save(y, 'src/dataset/y.pt')
