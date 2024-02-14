@@ -1,5 +1,5 @@
 import torch
-from model_1 import Model_1_Small
+from model_1 import Model_1_Small, Model_1_Large
 from torch.utils.data import Dataset, DataLoader
 from tqdm import tqdm
 import torch.optim as optim
@@ -9,7 +9,7 @@ torch.autograd.set_detect_anomaly(True)
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 num_workers = 8
 
-model = Model_1_Small(6, 15, False).to(device)
+model = Model_1_Small(6).to(device)
 
 
 class HistoricalDataset(Dataset):
@@ -32,7 +32,7 @@ print(dataset.X.shape)
 
 
 criterion = torch.nn.MSELoss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=0.001, foreach=False)
 
 
 def train(epoch, dataset, model, optimizer, criterion):

@@ -4,4 +4,10 @@
 
 ### [Dataset](https://www.kaggle.com/datasets/jacksoncrow/stock-market-dataset)
 
-### [Starting model](https://arxiv.org/pdf/2107.09055.pdf?ssp=1&darkschemeovr=1&setlang=en&cc=PL&safesearch=moderate)
+### Model I'd be using
+
+#### Probably RAMT -> RNN with Attention Mechanism and Time vectorization
+
+### Training plan
+
+#### Available in src/models/training_plan.md
