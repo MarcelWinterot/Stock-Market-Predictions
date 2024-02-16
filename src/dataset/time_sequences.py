@@ -2,7 +2,7 @@ import torch
 import numpy as np
 from torch.utils.data import Dataset
 
-NUM_PREVIOUS_DAYS = 14
+NUM_PREVIOUS_DAYS = 29
 
 X = torch.load('src/dataset/X.pt')
 y = torch.load('src/dataset/y.pt')

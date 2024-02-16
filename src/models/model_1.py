@@ -1,11 +1,5 @@
 """
-Model_1 will be divided into 2 different types, small and large versions
-Small version is for quick tests on the architecture
-Large version is to test the performance overall and will be the version used for all practical purposes
-
-Also
-Small version is set to have a starting_channels set to 15, meaning it has only the past 14 days of data
-Large version will have the last year of data
+Simple RNN with time2vec
 """
 
 
