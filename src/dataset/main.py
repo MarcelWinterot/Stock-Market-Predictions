@@ -61,6 +61,8 @@ X = df[['name', 'Open', 'High', 'Low', 'Adj Close',
         'Volume', 'day', 'month', 'year', 'weekday']]
 y = df['Close']
 
+print(X['name'].unique())
+
 X = torch.tensor(X.values, dtype=torch.float32)
 y = torch.tensor(y.values, dtype=torch.float32)
 

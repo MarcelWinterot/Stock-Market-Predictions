@@ -21,7 +21,7 @@ def load_data(file):
 
 
 def main():
-    selected_stocks = "AAPL"
+    selected_stocks = ["AAPL", "GOOGL", "MSFT", "AMZN", "FB"]
     files = [os.path.join(data_dir, file) for file in os.listdir(
         data_dir) if file.split('.')[0] in selected_stocks]
 
@@ -31,6 +31,8 @@ def main():
         dfs.append(load_data(file))
 
     df = pd.concat(dfs, axis=0)
+
+    print(df['name'].unique())
 
     with open(os.path.join(current_dir, 'df.pkl'), 'wb') as f:
         pkl.dump(df, f)

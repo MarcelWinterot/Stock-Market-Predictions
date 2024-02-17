@@ -16,13 +16,17 @@ class LSTMWithAttention(nn.Module):
         self.lstm = nn.LSTM(input_size, hidden_size // self.bidirectional_modification, num_layers,
                             batch_first=True, dropout=dropout, bidirectional=bidirectional)
 
+        self.attn = nn.MultiheadAttention(
+            hidden_size, 1, dropout=dropout, batch_first=True)
+
     def forward(self, X: torch.tensor) -> torch.tensor:
         X, _ = self.lstm(X)
+        X = self.attn(X, X, X)[0]
         return X
 
 
 class Model_2(nn.Module):
-    def __init__(self, hidden_size: int = 30, num_layers: int = 5, dropout: float = 0.0, bidirectional: bool = True, num_stocks: int = 6) -> None:
+    def __init__(self, hidden_size: int = 30, num_layers: int = 5, dropout: float = 0.0, bidirectional: bool = True, num_stocks: int = 1) -> None:
         super(Model_2, self).__init__()
         self.name_embedding = nn.Embedding(num_stocks, 1)
         self.activation = nn.PReLU()

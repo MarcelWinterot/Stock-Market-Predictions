@@ -2,12 +2,13 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
-from torch.utils.data import Dataset, DataLoader, SubsetRandomSampler
+from torch.utils.data import DataLoader, SubsetRandomSampler
 
 from tqdm import tqdm
 from sklearn.model_selection import KFold
 
 from model_2 import Model_2
+from utils import HistoricalDataset
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -15,34 +16,18 @@ device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_WORKERS = 8
 EPOCHS = 10
 BATCH_SIZE = 32
+TEST_BATCH_SIZE = 1000
 K = 10
 
 torch.backends.cudnn.enabled = True
 
-# model = Model_1_Small(6).to(device)
-model = Model_2().to(device)
-
-
-class HistoricalDataset(Dataset):
-    def __init__(self, X, y):
-        super(HistoricalDataset, self).__init__()
-        self.X = X
-        self.y = y
-        self.len = len(self.y)
-
-    def __len__(self):
-        return self.len
-
-    def __getitem__(self, idx):
-        return self.X[idx], self.y[idx]
+model = Model_2(num_stocks=5).to(device)
 
 
 dataset = torch.load('src/dataset/dataset.pt')
 
-print(dataset.X.shape)
 
-
-criterion = torch.nn.MSELoss()
+criterion = torch.nn.SmoothL1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
 
 
@@ -102,7 +87,7 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
         train_loader = DataLoader(
             dataset, batch_size=BATCH_SIZE, sampler=SubsetRandomSampler(train_ids))
         test_loader = DataLoader(
-            dataset, batch_size=BATCH_SIZE, sampler=SubsetRandomSampler(test_ids))
+            dataset, batch_size=TEST_BATCH_SIZE, sampler=SubsetRandomSampler(test_ids))
 
         for epoch in range(EPOCHS):
             train(1, train_loader, model, optimizer, criterion)
@@ -110,9 +95,10 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
             loss = test(test_loader, model, criterion)
 
             print(
-                F"Epoch {epoch} loss: {loss:.4f} in test set")
+                F"Epoch {epoch} loss: {loss:.8f} in test set")
 
         torch.save(model.state_dict(), f'./model_fold_{fold}.pt')
+        exit()
 
 
 k_fold_cv(K, dataset, model, optimizer, criterion)
