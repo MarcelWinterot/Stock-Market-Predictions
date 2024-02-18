@@ -50,7 +50,7 @@ class Time2Vec(nn.Module):
         v1 = self.f(self.linear_1(X))
         v2 = self.linear_2(X)
 
-        X = torch.cat([v1, v2], dim=-1)
+        X = torch.cat([v1, v2])
         return X
 
 

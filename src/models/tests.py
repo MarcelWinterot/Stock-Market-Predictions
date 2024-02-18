@@ -18,7 +18,7 @@ y = dataset.y
 
 dataloader = DataLoader(dataset, 1024, False)
 
-model = Model_2().to(device)
+model = Model_2(num_stocks=10).to(device)
 model.load_state_dict(torch.load('src/models/model_fold_1.pt'))
 
 predictions = []

@@ -5,7 +5,6 @@ Simple LSTM with attention
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import Time2Vec
 
 
 class LSTMWithAttention(nn.Module):
@@ -21,12 +20,14 @@ class LSTMWithAttention(nn.Module):
 
     def forward(self, X: torch.tensor) -> torch.tensor:
         X, _ = self.lstm(X)
+
         X = self.attn(X, X, X)[0]
+
         return X
 
 
 class Model_2(nn.Module):
-    def __init__(self, hidden_size: int = 30, num_layers: int = 5, dropout: float = 0.0, bidirectional: bool = True, num_stocks: int = 1) -> None:
+    def __init__(self, hidden_size: int = 30, num_layers: int = 5, dropout: float = 0.0, bidirectional: bool = True, num_stocks: int = 10) -> None:
         super(Model_2, self).__init__()
         self.name_embedding = nn.Embedding(num_stocks, 1)
         self.activation = nn.PReLU()

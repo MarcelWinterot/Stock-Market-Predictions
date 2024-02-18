@@ -12,20 +12,27 @@ from utils import HistoricalDataset
 
 torch.autograd.set_detect_anomaly(True)
 
+# Training variables
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_WORKERS = 8
-EPOCHS = 10
+EPOCHS = 35
 BATCH_SIZE = 32
 TEST_BATCH_SIZE = 1000
 K = 10
+PATIENCE = 10
 
-torch.backends.cudnn.enabled = True
+# Model variables
+HIDDEN_SIZE = 30
+NUM_LAYERS = 5
+DROPOUT = 0.0
+BIDIRECTIONAL = True
+NUM_STOCKS = 10
 
-model = Model_2(num_stocks=5).to(device)
+model = Model_2(HIDDEN_SIZE, NUM_LAYERS, DROPOUT,
+                BIDIRECTIONAL, NUM_STOCKS).to(device)
 
 
 dataset = torch.load('src/dataset/dataset.pt')
-
 
 criterion = torch.nn.SmoothL1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -53,6 +60,8 @@ def train(epoch, dataloader, model, optimizer, criterion):
 
         print(f"Loss: {running_loss / len(dataloader)}")
 
+    return running_loss / len(dataloader)
+
 
 def test(dataloader, model, criterion):
     model.eval()
@@ -67,7 +76,7 @@ def test(dataloader, model, criterion):
 
         running_loss += loss.item()
 
-    return running_loss
+    return running_loss / len(dataloader)
 
 
 def reset_weights(m):
@@ -76,10 +85,13 @@ def reset_weights(m):
             layer.reset_parameters()
 
 
-def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optimizer: torch.optim.Optimizer, criterion: nn.Module):
+def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optimizer: torch.optim.Optimizer, criterion: nn.Module, patience: int = None):
     folds = KFold(n_splits=k, shuffle=True)
 
     for fold, (train_ids, test_ids) in enumerate(folds.split(dataset), 1):
+        current_patience = 0
+        best_loss = float("inf")
+        best_model_state = model.state_dict()
         print(f"Fold {fold}")
 
         model.apply(reset_weights)
@@ -94,11 +106,23 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
 
             loss = test(test_loader, model, criterion)
 
-            print(
-                F"Epoch {epoch} loss: {loss:.8f} in test set")
+            if loss < best_loss:
+                best_loss = loss
+                current_patience = 0
+                best_model_state = model.state_dict()
+            else:
+                current_patience += 1
 
-        torch.save(model.state_dict(), f'./model_fold_{fold}.pt')
+            if patience is not None and current_patience >= patience:
+                print(
+                    f"Stopping training due to model not improving over {patience} epochs")
+                break
+
+            print(
+                F"Epoch {epoch} loss: {loss} in test set")
+
+        torch.save(best_model_state, f'./model_fold_{fold}.pt')
         exit()
 
 
-k_fold_cv(K, dataset, model, optimizer, criterion)
+k_fold_cv(K, dataset, model, optimizer, criterion, PATIENCE)

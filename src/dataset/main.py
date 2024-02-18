@@ -7,6 +7,10 @@ df = pd.read_pickle('src/dataset/df.pkl')
 
 print(df.head(100))
 
+print(df['Open'].max())
+# Print the column with max value for df['Open']
+print(df[df['Open'] == df['Open'].max()])
+
 
 price_scaler = MinMaxScaler()
 volume_scaler = MinMaxScaler()
@@ -61,7 +65,12 @@ X = df[['name', 'Open', 'High', 'Low', 'Adj Close',
         'Volume', 'day', 'month', 'year', 'weekday']]
 y = df['Close']
 
-print(X['name'].unique())
+# Print y where value is NaN
+
+# Fill NaN values with the mean of the previous and next value
+y = y.fillna(y.mean())
+X = X.fillna(method='ffill')
+X = X.fillna(method='bfill')
 
 X = torch.tensor(X.values, dtype=torch.float32)
 y = torch.tensor(y.values, dtype=torch.float32)
