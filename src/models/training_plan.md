@@ -36,19 +36,13 @@
 
 #### It should also have time2vec
 
-### 2. Sentiment analysis of the news
-
-#### The second part will be a sentiment analysis model of the news regarding the company or the world at the moment
-
-#### I will be using [this model](https://huggingface.co/ProsusAI/finbert)
-
-### 3. Economical analysis
+### 2. Economical analysis
 
 #### Another part of the model will look at current economics of the world, the country of the company and strategic and luxury resources
 
 #### It will probably have simillar desing the the historical data analysis but we will see
 
-### 4. MLP
+### 3. MLP
 
 #### To combine all of the parts of the model I will create a small MLP
 

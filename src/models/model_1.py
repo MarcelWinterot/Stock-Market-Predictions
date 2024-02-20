@@ -20,7 +20,7 @@ class MLP_Small(nn.Module):
         self.activation = activation
         self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, X):
+    def forward(self, X: torch.tensor) -> torch.tensor:
         X = self.dropout(self.activation(self.lienar_1(X)))
         X = self.dropout(self.activation(self.lienar_2(X)))
         X = self.dropout(self.activation(self.lienar_3(X)))
@@ -71,7 +71,7 @@ class Model_1_Small(nn.Module):
 
         self.name_embedding = nn.Embedding(num_stocks, 1)
 
-    def forward(self, X):
+    def forward(self, X: torch.tensor) -> torch.tensor:
         X[:, 0] = self.name_embedding(
             X[:, 0].long()).squeeze(2)
 
@@ -98,7 +98,7 @@ class MLP_Large(nn.Module):
         self.activation = activation
         self.dropout = nn.Dropout(dropout_rate)
 
-    def forward(self, X):
+    def forward(self, X: torch.tensor) -> torch.tensor:
         X = self.dropout(self.activation(self.lienar_1(X)))
         X = self.dropout(self.activation(self.lienar_2(X)))
         X = self.dropout(self.activation(self.lienar_3(X)))
@@ -144,7 +144,7 @@ class Model_1_Large(nn.Module):
 
         self.name_embedding = nn.Embedding(num_stocks, 1)
 
-    def forward(self, X):
+    def forward(self, X: torch.tensor) -> torch.tensor:
         X[:, 0] = self.name_embedding(
             X[:, 0].long()).squeeze(2)
 

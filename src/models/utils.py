@@ -23,7 +23,7 @@ class RNNBlock(nn.Module):
 
         self.drop = nn.Dropout(dropout)
 
-    def forward(self, X):
+    def forward(self, X: torch.tensor) -> torch.tensor:
         X, _ = self.lstm(X)
         X = self.activation(X)
         X = self.drop(X)
@@ -46,7 +46,6 @@ class Time2Vec(nn.Module):
         self.linear_2 = nn.Linear(in_features, out_features)
         self.f = activation
 
-    def forward(self, X):
         v1 = self.f(self.linear_1(X))
         v2 = self.linear_2(X)
 

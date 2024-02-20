@@ -11,3 +11,5 @@
 ### Strategic resources and luxury resources - https://www.alphavantage.co/documentation/
 
 ### FinBERT - https://arxiv.org/pdf/1908.10063.pdf
+
+### Gold prices - https://fred.stlouisfed.org/series/PCU2122212122210
