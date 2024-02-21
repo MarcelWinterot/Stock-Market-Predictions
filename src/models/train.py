@@ -7,8 +7,8 @@ from torch.utils.data import DataLoader, SubsetRandomSampler
 from tqdm import tqdm
 from sklearn.model_selection import KFold
 
-from model_2 import Model_2
-from utils import HistoricalDataset
+from model_3 import Model_3 as Model
+from utils import HistoricalDataset, CombinedDataset
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -28,11 +28,12 @@ DROPOUT = 0.0
 BIDIRECTIONAL = True
 NUM_STOCKS = 10
 
-model = Model_2(HIDDEN_SIZE, NUM_LAYERS, DROPOUT,
-                BIDIRECTIONAL, NUM_STOCKS).to(device)
+N_HEADS = 6
+
+model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS, NUM_STOCKS).to(device)
 
 
-dataset = torch.load('src/dataset/dataset.pt')
+dataset = torch.load('src/dataset/combined_dataset.pt')
 
 criterion = torch.nn.SmoothL1Loss()
 optimizer = optim.Adam(model.parameters(), lr=0.001)
@@ -44,11 +45,12 @@ def train(epoch, dataloader, model, optimizer, criterion):
     for epoch in range(epoch):
         running_loss = 0.0
         print(f"Epoch: {epoch}")
-        for X, y in tqdm(dataloader):
-            X, y = X.to(device), y.to(device)
+        for data in tqdm(dataloader):
+            X, y, economic_indicators = data['X'].to(device), data['y'].to(
+                device), data['economic_indicators'].to(device)
             optimizer.zero_grad()
 
-            out = model(X)
+            out = model(X, economic_indicators)
 
             loss = criterion(out, y)
 
@@ -59,18 +61,19 @@ def train(epoch, dataloader, model, optimizer, criterion):
             running_loss += loss.item()
 
         print(f"Loss: {running_loss / len(dataloader)}")
+        optimizer.zero_grad()
 
     return running_loss / len(dataloader)
 
 
 def test(dataloader, model, criterion):
     model.eval()
-
     running_loss = 0.0
-    for X, y in tqdm(dataloader):
-        X, y = X.to(device), y.to(device)
+    for data in tqdm(dataloader):
+        X, y, economic_indicators = data['X'].to(device), data['y'].to(
+            device), data['economic_indicators'].to(device)
 
-        out = model(X)
+        out = model(X, economic_indicators)
 
         loss = criterion(out, y)
 

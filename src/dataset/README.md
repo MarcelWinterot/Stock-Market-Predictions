@@ -6,13 +6,7 @@
 
 ### 2. Unzip it and place it in 'data' folder
 
-### 3. Run the prepare.py
-
-### 3.1. Alternatively if you want to use just a few stocks instead of the whole dataset run limited_prepare.py and select the stocks you want
-
-### 4. After that run main.py
-
-### 5. Run time_sequences.py
+### 3. Run prepare_historical.py
 
 ## Economic data
 
@@ -32,4 +26,6 @@
 
 ### 2. Place it in 'economic_data' folder
 
-### 3. Run economic_data.py
+### 3. Run prepare_economic.py
+
+### 4. If you want to use model_3 you need to run combine.py
