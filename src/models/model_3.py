@@ -57,6 +57,7 @@ class Model_3(nn.Module):
         self.economy = EconomyModel(6, 3, dropout, True)
 
         d_ff = hidden_size * 10
+        self.hidden_size = hidden_size
 
         encoder = nn.TransformerEncoderLayer(
             hidden_size, n_heads, d_ff, dropout, self.activation, batch_first=True)
@@ -71,7 +72,7 @@ class Model_3(nn.Module):
     def forward(self, X, economic_indicators):
         economic = self.economy(economic_indicators)
 
-        economic = economic.unsqueeze(1).expand(-1, 30, -1)
+        economic = economic.unsqueeze(1).expand(-1, self.hidden_size, -1)
 
         X = torch.cat((X, economic), dim=2).permute(0, 2, 1)
 

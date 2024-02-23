@@ -1,3 +1,5 @@
+import numpy as np
+import random
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -5,21 +7,33 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, SubsetRandomSampler
 
 from tqdm import tqdm
-from sklearn.model_selection import KFold
+from sklearn.model_selection import KFold, TimeSeriesSplit
 
 from model_3 import Model_3 as Model
 from utils import HistoricalDataset, CombinedDataset
 
 torch.autograd.set_detect_anomaly(True)
 
+
+seed = 42
+random.seed(seed)
+np.random.seed(seed)
+torch.manual_seed(seed)
+torch.cuda.manual_seed(seed)
+torch.cuda.manual_seed_all(seed)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+
 # Training variables
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_WORKERS = 8
-EPOCHS = 35
+EPOCHS = 20
 BATCH_SIZE = 32
 TEST_BATCH_SIZE = 1000
 K = 10
 PATIENCE = 10
+LR = 2e-4
 
 # Model variables
 HIDDEN_SIZE = 30
@@ -31,12 +45,14 @@ NUM_STOCKS = 10
 N_HEADS = 6
 
 model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS, NUM_STOCKS).to(device)
+# model = Model(HIDDEN_SIZE, NUM_LAYERS, DROPOUT,
+#               BIDIRECTIONAL, NUM_STOCKS).to(device)
 
 
 dataset = torch.load('src/dataset/combined_dataset.pt')
 
 criterion = torch.nn.SmoothL1Loss()
-optimizer = optim.Adam(model.parameters(), lr=0.001)
+optimizer = optim.Adam(model.parameters(), lr=LR)
 
 
 def train(epoch, dataloader, model, optimizer, criterion):
@@ -50,6 +66,7 @@ def train(epoch, dataloader, model, optimizer, criterion):
                 device), data['economic_indicators'].to(device)
             optimizer.zero_grad()
 
+            # out = model(X)
             out = model(X, economic_indicators)
 
             loss = criterion(out, y)
@@ -73,6 +90,7 @@ def test(dataloader, model, criterion):
         X, y, economic_indicators = data['X'].to(device), data['y'].to(
             device), data['economic_indicators'].to(device)
 
+        # out = model(X)
         out = model(X, economic_indicators)
 
         loss = criterion(out, y)
@@ -90,6 +108,7 @@ def reset_weights(m):
 
 def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optimizer: torch.optim.Optimizer, criterion: nn.Module, patience: int = None):
     folds = KFold(n_splits=k, shuffle=True)
+    # folds = TimeSeriesSplit(n_splits=k)
 
     for fold, (train_ids, test_ids) in enumerate(folds.split(dataset), 1):
         current_patience = 0

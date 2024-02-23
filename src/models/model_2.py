@@ -50,6 +50,8 @@ class Model_2(nn.Module):
         X[:, 0] = self.name_embedding(
             X[:, 0].long()).squeeze(2)
 
+        X = X.permute(0, 2, 1)
+
         for lstm in self.lstms:
             X = lstm(X)
 

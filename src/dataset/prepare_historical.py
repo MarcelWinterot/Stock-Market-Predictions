@@ -4,6 +4,7 @@ import torch
 import pandas as pd
 import os
 from utils import HistoricalDataset
+import random
 
 
 def load_data(file):
@@ -34,8 +35,8 @@ def remove_bad_stocks():
 def prepare():
     selected_stocks = ["AAPL", "GOOGL", "MSFT", "AMZN",
                        "FB", "TSLA", "NVDA", "INTC", "CSCO", "ADBE"]
-    # files = [file.split('.')[0] for file in os.listdir(data_dir)]
-    # selected_stocks = random.sample(files, 10)
+    # files = [file.split('.')[0] for file in os.listdir('src/dataset/data')]
+    # selected_stocks = random.sample(files, 100)
 
     files = [f'src/dataset/data/{file}' for file in os.listdir(
         'src/dataset/data') if file.split('.')[0] in selected_stocks]
@@ -47,10 +48,21 @@ def prepare():
 
     df = pd.concat(dfs, axis=0)
 
+    df = df.dropna()
+
     return df
 
 
 df = prepare()
+
+
+def remove_stocks_older_than_1986(df: pd.DataFrame) -> pd.DataFrame:
+    return df[(df['year'] > 1987) & (df['year'] < 2022)]
+    # 1987 is because of WTI.csv having data only from 1986
+    # 2023 is because of the economic indicators data only going up to 2023 january
+
+
+df = remove_stocks_older_than_1986(df)
 
 
 price_scaler = MinMaxScaler()
@@ -82,13 +94,6 @@ df['weekday'] = weekday_scaler.fit_transform(
 print(df.head())
 
 
-def remove_stocks_older_than_1986(df: pd.DataFrame) -> pd.DataFrame:
-    return df[(df['year'] > 0.16) & (df['year'] < 0.925)]  # TODO Remove this
-
-
-df = remove_stocks_older_than_1986(df)
-
-
 with open('src/dataset/scalers/price_scaler.pkl', 'wb') as f:
     torch.save(price_scaler, f)
 
@@ -116,9 +121,10 @@ X = df[['name', 'Open', 'High', 'Low', 'Adj Close',
         'Volume', 'day', 'month', 'year', 'weekday']]
 y = df['Close']
 
-y = y.fillna(y.mean())
-X = X.fillna(method='ffill')
-X = X.fillna(method='bfill')
+# y = y.fillna(y.mean())
+# X = X.fillna(method='ffill')
+# X = X.fillna(method='bfill')
+
 
 X = torch.tensor(X.values, dtype=torch.float32)
 y = torch.tensor(y.values, dtype=torch.float32)
@@ -168,8 +174,6 @@ new_dataset = torch.tensor(np.array(new_dataset), dtype=torch.float32)
 mask = torch.tensor(mask, dtype=torch.long)
 
 y = y[mask]
-
-# new_dataset = new_dataset.permute(0, 2, 1)
 
 print(new_dataset.shape)
 print(y.shape)

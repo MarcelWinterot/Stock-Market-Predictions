@@ -22,11 +22,23 @@ def process_alpha_vantage_df(df: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
+# def process_gold(df: pd.DataFrame) -> pd.DataFrame:
+#     df['date'] = pd.to_datetime(df['DATE'])
+#     df['value'] = df['PCU2122212122210'].astype(float)
+#     df = df.drop(columns=['DATE', 'PCU2122212122210'])
+#     df = df.set_index('date')
+#     return df
+
 def process_gold(df: pd.DataFrame) -> pd.DataFrame:
-    df['date'] = pd.to_datetime(df['DATE'])
-    df['value'] = df['PCU2122212122210'].astype(float)
-    df = df.drop(columns=['DATE', 'PCU2122212122210'])
+    df['date'] = pd.to_datetime(df['Time'])
+    df['date'] = df['date'].apply(lambda x: x.replace(day=1))
+    df['value'] = df['Last'].astype(float)
+    
+    df = df.drop(columns=['Exp Date', 'Symbol', 'Contract Name', '52W High',
+                 '52W High Date', '52W Low', '52W Low Date', '52W %Chg', 'Time', 'Last'])
+    
     df = df.set_index('date')
+
     return df
 
 
