@@ -7,6 +7,9 @@ from utils import HistoricalDataset
 import random
 
 
+NUM_PREVIOUS_DAYS = 29
+
+
 def load_data(file):
     new_df = pd.read_csv(file)
     new_df['name'] = os.path.basename(file).split('.')[0]
@@ -65,6 +68,69 @@ def remove_stocks_older_than_1986(df: pd.DataFrame) -> pd.DataFrame:
 df = remove_stocks_older_than_1986(df)
 
 
+def average_true_range(df, period=14):
+    df['HL'] = df['High'] - df['Low']
+    df['HPC'] = abs(df['High'] - df['Close'].shift())
+    df['LPC'] = abs(df['Low'] - df['Close'].shift())
+    df['TR'] = df[['HL', 'HPC', 'LPC']].max(axis=1)
+
+    df['ATR'] = df['TR'].rolling(window=period).mean()
+
+    df = df.drop(['HL', 'HPC', 'LPC', 'TR'], axis=1)
+
+    return df
+
+
+def volume_weighted_average_price(df: pd.DataFrame) -> pd.DataFrame:
+    df['Price_Volume'] = df['Close'] * df['Volume']
+    df['Cumulative_Price_Volume'] = df['Price_Volume'].cumsum()
+    df['Cumulative_Volume'] = df['Volume'].cumsum()
+    df['VWAP'] = df['Cumulative_Price_Volume'] / df['Cumulative_Volume']
+
+    df = df.drop(['Price_Volume', 'Cumulative_Price_Volume',
+                  'Cumulative_Volume'], axis=1)
+
+    return df
+
+
+def relative_strength_index(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
+    df['change'] = df['Close'].diff()
+
+    df['gain'] = np.where(df['change'] > 0, df['change'],  0)
+    df['loss'] = np.where(df['change'] < 0, -df['change'],  0)
+
+    df['avg_gain'] = df['gain'].ewm(com=period-1, min_periods=period).mean()
+    df['avg_loss'] = df['loss'].ewm(com=period-1, min_periods=period).mean()
+
+    df['rs'] = df['avg_gain'] / df['avg_loss']
+
+    df['RSI'] = 100 - (100 / (1 + df['rs']))
+
+    df = df.drop(['change', 'gain', 'loss',
+                 'avg_gain', 'avg_loss', 'rs'], axis=1)
+
+    return df
+
+
+def weighted_moving_average(df: pd.DataFrame, period: int = 14) -> pd.DataFrame:
+    weights = np.arange(1, period + 1)
+    df['WMA'] = df['Close'].rolling(window=period).apply(
+        lambda prices: np.dot(prices, weights) / weights.sum(), raw=True)
+
+    return df
+
+
+df = average_true_range(df, NUM_PREVIOUS_DAYS)
+df = volume_weighted_average_price(df)
+df = relative_strength_index(df, NUM_PREVIOUS_DAYS)
+df = weighted_moving_average(df, NUM_PREVIOUS_DAYS)
+
+df = df.dropna()
+
+print(df.head())
+print(df.tail())
+
+
 price_scaler = MinMaxScaler()
 volume_scaler = MinMaxScaler()
 day_scaler = MinMaxScaler()
@@ -72,6 +138,10 @@ month_scaler = MinMaxScaler()
 year_scaler = MinMaxScaler()
 weekday_scaler = MinMaxScaler()
 label_encoder = LabelEncoder()
+atr_scaler = MinMaxScaler()
+vwap_scaler = MinMaxScaler()
+rsi_scaler = MinMaxScaler()
+wma_scaler = MinMaxScaler()
 
 df['name'] = label_encoder.fit_transform(df['name'])
 prices = pd.concat([df['Open'], df['High'], df['Low'], df['Close']], axis=0)
@@ -89,9 +159,14 @@ df['month'] = month_scaler.fit_transform(df['month'].values.reshape(-1, 1))
 df['year'] = year_scaler.fit_transform(df['year'].values.reshape(-1, 1))
 df['weekday'] = weekday_scaler.fit_transform(
     df['weekday'].values.reshape(-1, 1))
+df['ATR'] = atr_scaler.fit_transform(df['ATR'].values.reshape(-1, 1))
+df['VWAP'] = vwap_scaler.fit_transform(df['VWAP'].values.reshape(-1, 1))
+df['RSI'] = rsi_scaler.fit_transform(df['RSI'].values.reshape(-1, 1))
+df['WMA'] = wma_scaler.fit_transform(df['WMA'].values.reshape(-1, 1))
 
 
 print(df.head())
+print(df.tail())
 
 
 with open('src/dataset/scalers/price_scaler.pkl', 'wb') as f:
@@ -115,24 +190,27 @@ with open('src/dataset/scalers/weekday_scaler.pkl', 'wb') as f:
 with open('src/dataset/scalers/label_encoder.pkl', 'wb') as f:
     torch.save(label_encoder, f)
 
-print(df.head(100))
+with open('src/dataset/scalers/atr_scaler.pkl', 'wb') as f:
+    torch.save(atr_scaler, f)
+
+with open('src/dataset/scalers/vwap_scaler.pkl', 'wb') as f:
+    torch.save(vwap_scaler, f)
+
+with open('src/dataset/scalers/rsi_scaler.pkl', 'wb') as f:
+    torch.save(rsi_scaler, f)
+
+with open('src/dataset/scalers/wma_scaler.pkl', 'wb') as f:
+    torch.save(wma_scaler, f)
 
 X = df[['name', 'Open', 'High', 'Low', 'Adj Close',
-        'Volume', 'day', 'month', 'year', 'weekday']]
+        'Volume', 'day', 'month', 'year', 'weekday', 'ATR', 'VWAP', 'RSI', 'WMA']]
 y = df['Close']
-
-# y = y.fillna(y.mean())
-# X = X.fillna(method='ffill')
-# X = X.fillna(method='bfill')
 
 
 X = torch.tensor(X.values, dtype=torch.float32)
 y = torch.tensor(y.values, dtype=torch.float32)
 
 y = y.reshape(-1, 1)
-
-
-NUM_PREVIOUS_DAYS = 29
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -148,7 +226,7 @@ for stock in df[0].unique():
     stock_indexes.append(df[df[0] == stock].index[0])  # Starting index
     stock_indexes.append(df[df[0] == stock].index[-1])  # Ending index
 
-X = X.reshape(-1, 1, 10)
+X = X.reshape(-1, 1, 14)
 
 print(X.shape)
 print(y.shape)

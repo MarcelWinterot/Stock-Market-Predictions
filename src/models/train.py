@@ -28,8 +28,8 @@ torch.backends.cudnn.benchmark = False
 # Training variables
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_WORKERS = 8
-EPOCHS = 20
-BATCH_SIZE = 32
+EPOCHS = 35
+BATCH_SIZE = 64
 TEST_BATCH_SIZE = 1000
 K = 10
 PATIENCE = 10
@@ -45,14 +45,21 @@ NUM_STOCKS = 10
 N_HEADS = 6
 
 model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS, NUM_STOCKS).to(device)
-# model = Model(HIDDEN_SIZE, NUM_LAYERS, DROPOUT,
-#               BIDIRECTIONAL, NUM_STOCKS).to(device)
+
+try:
+    model.load_state_dict(torch.load('src/models/model.pt'))
+except:
+    pass
 
 
 dataset = torch.load('src/dataset/combined_dataset.pt')
 
 criterion = torch.nn.SmoothL1Loss()
 optimizer = optim.Adam(model.parameters(), lr=LR)
+
+# lr_scheduler = torch.optim.lr_scheduler.StepLR(
+#     optimizer, step_size=5, gamma=0.5)
+lr_scheduler = None
 
 
 def train(epoch, dataloader, model, optimizer, criterion):
@@ -106,7 +113,7 @@ def reset_weights(m):
             layer.reset_parameters()
 
 
-def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optimizer: torch.optim.Optimizer, criterion: nn.Module, patience: int = None):
+def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optimizer: torch.optim.Optimizer, criterion: nn.Module, patience: int = None, lrs: optim.lr_scheduler = None):
     folds = KFold(n_splits=k, shuffle=True)
     # folds = TimeSeriesSplit(n_splits=k)
 
@@ -143,8 +150,11 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
             print(
                 F"Epoch {epoch} loss: {loss} in test set")
 
+            if lrs is not None:
+                lrs.step()
+
         torch.save(best_model_state, f'./model_fold_{fold}.pt')
         exit()
 
 
-k_fold_cv(K, dataset, model, optimizer, criterion, PATIENCE)
+k_fold_cv(K, dataset, model, optimizer, criterion, PATIENCE, lr_scheduler)

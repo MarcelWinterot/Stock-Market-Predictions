@@ -22,9 +22,9 @@
 
 - https://github.com/AminHP/gym-mtsim
 
-## 3. Robinhood play time
+## 3. Real stock market play time
 
-### If the model succeeds in generating a profit I will let it play for a while on Robinhood
+### If the model succeeds in generating a profit I will let it play for a while on stock market
 
 ## Plans for the model
 
@@ -34,16 +34,12 @@
 
 #### It will probably be somekind of RNN or a transformer
 
-#### It should also have time2vec
-
 ### 2. Economical analysis
 
 #### Another part of the model will look at current economics of the world, the country of the company and strategic and luxury resources
 
 #### It will probably have simillar desing the the historical data analysis but we will see
 
-### 3. MLP
+### 3. Sentiment analysis
 
-#### To combine all of the parts of the model I will create a small MLP
-
-#### Don't know how it will look like yet but probably a FNN
+#### Don't know yet if I will use it as it's a pain in the ass to gather all the resources, but it will be [finBERT](https://huggingface.co/ProsusAI/finbert)

@@ -1,5 +1,5 @@
 import matplotlib.pyplot as plt
-from model_3 import Model_3 as Model
+from model import Model
 from utils import HistoricalDataset, CombinedDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
@@ -25,7 +25,9 @@ NUM_STOCKS = 10
 N_HEADS = 6
 
 model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS, NUM_STOCKS).to(device)
-model.load_state_dict(torch.load('src/models/model_fold_1.pt'))
+model.load_state_dict(torch.load('src/testing/model.pt'))
+
+model.eval()
 
 predictions = []
 
@@ -38,9 +40,18 @@ for data in dataloader:
     predictions.extend(out.cpu().detach().numpy())
 
 
+scaler = torch.load('src/dataset/scalers/price_scaler.pkl')
+
+y = y.cpu()
+
+predictions = scaler.inverse_transform(predictions)
+
+y = scaler.inverse_transform(y)
+
+
 plt.plot(predictions, label='Predictions')
 
-plt.plot(y.cpu().detach().numpy(), label='True')
+plt.plot(y, label='True')
 
 plt.legend()
 
