@@ -11,6 +11,8 @@ REAL_GDP = pd.read_csv('src/dataset/economic_data/REAL_GDP.csv')
 UNEMPLOYMENT = pd.read_csv('src/dataset/economic_data/UNEMPLOYMENT.csv')
 WTI = pd.read_csv('src/dataset/economic_data/WTI.csv')
 GOLD = pd.read_csv('src/dataset/economic_data/GOLD.csv')
+CCI = pd.read_csv('src/dataset/economic_data/CCI.csv')
+PPI = pd.read_csv('src/dataset/economic_data/PPI.csv')
 
 
 def process_alpha_vantage_df(df: pd.DataFrame) -> pd.DataFrame:
@@ -33,10 +35,10 @@ def process_gold(df: pd.DataFrame) -> pd.DataFrame:
     df['date'] = pd.to_datetime(df['Time'])
     df['date'] = df['date'].apply(lambda x: x.replace(day=1))
     df['value'] = df['Last'].astype(float)
-    
+
     df = df.drop(columns=['Exp Date', 'Symbol', 'Contract Name', '52W High',
                  '52W High Date', '52W Low', '52W Low Date', '52W %Chg', 'Time', 'Last'])
-    
+
     df = df.set_index('date')
 
     return df
@@ -48,6 +50,8 @@ REAL_GDP = process_alpha_vantage_df(REAL_GDP)
 UNEMPLOYMENT = process_alpha_vantage_df(UNEMPLOYMENT)
 WTI = process_alpha_vantage_df(WTI)
 GOLD = process_gold(GOLD)
+CCI = process_alpha_vantage_df(CCI)
+PPI = process_alpha_vantage_df(PPI)
 
 
 def process_gdp(df: pd.DataFrame) -> pd.DataFrame:
@@ -58,7 +62,7 @@ def process_gdp(df: pd.DataFrame) -> pd.DataFrame:
 REAL_GDP = process_gdp(REAL_GDP)
 
 
-def combine_datasets(CPI, NONFARM_PAYROLL, REAL_GDP, UNEMPLOYMENT, WTI, GOLD):
+def combine_datasets(CPI, NONFARM_PAYROLL, REAL_GDP, UNEMPLOYMENT, WTI, GOLD, CCI, PPI):
     df = CPI
     df['CPI'] = df['value']
     df = df.drop(columns=['value'])
@@ -68,13 +72,16 @@ def combine_datasets(CPI, NONFARM_PAYROLL, REAL_GDP, UNEMPLOYMENT, WTI, GOLD):
     df['UNEMPLOYMENT'] = UNEMPLOYMENT['value']
     df['WTI'] = WTI['value']
     df['GOLD'] = GOLD['value']
+    df['CCI'] = CCI['value']
+    df['PPI'] = PPI['value']
 
     df = df.dropna(axis=0, how='any')
 
     return df
 
 
-df = combine_datasets(CPI, NONFARM_PAYROLL, REAL_GDP, UNEMPLOYMENT, WTI, GOLD)
+df = combine_datasets(CPI, NONFARM_PAYROLL, REAL_GDP,
+                      UNEMPLOYMENT, WTI, GOLD, CCI, PPI)
 
 print(df.head())
 
@@ -127,7 +134,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 df = pd.DataFrame(X.numpy())
 
-X = X.reshape(-1, 1, 8)
+X = X.reshape(-1, 1, 10)
 
 print(X.shape)
 

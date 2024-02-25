@@ -38,8 +38,8 @@ torch.save(combined_dataset, 'src/dataset/combined_dataset.pt')
 
 combined_dataset = torch.load('src/dataset/combined_dataset.pt')
 
-# print(combined_dataset[-1])
 
+# Testing if we don't get any errors when loading the data
 for i in range(combined_dataset.len):
     try:
         data = combined_dataset[i]

@@ -26,6 +26,10 @@
 
 #### https://www.barchart.com/futures/quotes/GC*0/historical-prices
 
+#### https://fred.stlouisfed.org/series/CSCICP03USM665S
+
+#### https://fred.stlouisfed.org/series/PPIACO
+
 ### 2. Place it in 'economic_data' folder
 
 ### 3. Run prepare_economic.py

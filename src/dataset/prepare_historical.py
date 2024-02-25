@@ -37,7 +37,7 @@ def remove_bad_stocks():
 
 def prepare():
     selected_stocks = ["AAPL", "GOOGL", "MSFT", "AMZN",
-                       "FB", "TSLA", "NVDA", "INTC", "CSCO", "ADBE"]
+                       "META", "TSLA", "NVDA", "INTC", "CSCO", "ADBE"]
     # files = [file.split('.')[0] for file in os.listdir('src/dataset/data')]
     # selected_stocks = random.sample(files, 100)
 
@@ -60,9 +60,9 @@ df = prepare()
 
 
 def remove_stocks_older_than_1986(df: pd.DataFrame) -> pd.DataFrame:
-    return df[(df['year'] > 1987) & (df['year'] < 2022)]
+    return df[(df['year'] > 1987) & (df['year'] < 2023)]
     # 1987 is because of WTI.csv having data only from 1986
-    # 2023 is because of the economic indicators data only going up to 2023 january
+    # 2023 is because of the economic indicators data only going up to 2024 january
 
 
 df = remove_stocks_older_than_1986(df)
