@@ -60,9 +60,9 @@ df = prepare()
 
 
 def remove_stocks_older_than_1986(df: pd.DataFrame) -> pd.DataFrame:
-    return df[(df['year'] > 1987) & (df['year'] < 2023)]
+    return df[(df['year'] > 1987) & (df['year'] < 2024)]
     # 1987 is because of WTI.csv having data only from 1986
-    # 2023 is because of the economic indicators data only going up to 2024 january
+    # 2024 is because of the economic indicators data only going up to 2024 january
 
 
 df = remove_stocks_older_than_1986(df)

@@ -1,11 +1,12 @@
 import matplotlib.pyplot as plt
-from model import Model
-from utils import HistoricalDataset, CombinedDataset
 from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
+
+from model import Model
+from utils import HistoricalDataset, CombinedDataset
 
 
 dataset = torch.load('src/dataset/combined_dataset.pt')

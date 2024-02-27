@@ -1,6 +1,3 @@
-"""
-Transformer, mamba tests
-"""
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -27,7 +24,7 @@ class LSTMWithAttention(nn.Module):
 
 
 class EconomyModel(nn.Module):
-    def __init__(self, hidden_size: int = 6, num_layers: int = 3, dropout: float = 0.0, bidirectional: bool = True):
+    def __init__(self, hidden_size: int = 8, num_layers: int = 3, dropout: float = 0.0, bidirectional: bool = True):
         super(EconomyModel, self).__init__()
         self.activation = nn.PReLU()
         self.drop = nn.Dropout(dropout)
@@ -39,11 +36,8 @@ class EconomyModel(nn.Module):
             self.lstms.append(LSTMWithAttention(hidden_size,
                                                 hidden_size, 1, dropout, bidirectional))
 
-        self.fc_1 = nn.Linear(hidden_size * 2 * 6, hidden_size)
-        self.fc_2 = nn.Linear(hidden_size, 6)
-        self.fc_3 = nn.Linear(6, 1)
-
-        self.fcs = nn.ModuleList([self.fc_1, self.fc_2, self.fc_3])
+        self.fc_1 = nn.Linear(hidden_size * 12, hidden_size)
+        self.fc_2 = nn.Linear(hidden_size, 1)
 
     def forward(self, X: torch.tensor) -> torch.tensor:
         for lstm in self.lstms:
@@ -51,12 +45,9 @@ class EconomyModel(nn.Module):
 
         X = self.flatten(X)
 
-        for i, fc in enumerate(self.fcs):
-            if i != 2:
-                X = self.activation(self.drop(fc(X)))
+        X = self.activation(self.drop(self.fc_1(X)))
 
-            else:
-                X = fc(X)
+        X = self.fc_2(X)
 
         X = F.sigmoid(X)
 
@@ -71,7 +62,7 @@ class Model(nn.Module):
         self.drop = nn.Dropout(dropout)
         self.flatten = nn.Flatten()
 
-        self.economy = EconomyModel(6, 3, dropout, True)
+        self.economy = EconomyModel(8, 3, dropout, True)
 
         d_ff = hidden_size * 15
         self.hidden_size = hidden_size
