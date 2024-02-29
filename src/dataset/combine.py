@@ -33,6 +33,9 @@ economic_indicators = torch.load('src/dataset/economic_dataset.pt')
 
 combined_dataset = CombinedDataset(dataset.X, dataset.y, economic_indicators)
 
+data = combined_dataset[196]
+
+print(data['X'].shape, data['y'].shape, data['economic_indicators'].shape)
 
 # Testing if we don't get any errors when loading the data
 for i in range(combined_dataset.len):
@@ -40,7 +43,6 @@ for i in range(combined_dataset.len):
         data = combined_dataset[i]
     except Exception as e:
         print(i)
-        exit()
         # print(e)
 
 data = combined_dataset[0]

@@ -1,11 +1,11 @@
 import matplotlib.pyplot as plt
-from torch.utils.data import DataLoader
 import torch.optim as optim
 import torch.nn.functional as F
 import torch.nn as nn
 import torch
 import numpy as np
 from calendar import monthrange
+import pandas as pd
 
 from model import Model
 from utils import HistoricalDataset, CombinedDataset
@@ -23,8 +23,13 @@ NUM_STOCKS = 10
 
 N_HEADS = 6
 
-model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS, NUM_STOCKS).to(device)
-model.load_state_dict(torch.load('src/testing/model.pt'))
+model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT,
+              NUM_LAYERS, NUM_STOCKS).to(device)
+
+try:
+    model.load_state_dict(torch.load('src/testing/model.pt'))
+except:
+    pass
 
 
 class TradingStrategy:
@@ -33,7 +38,7 @@ class TradingStrategy:
         self.dataset: CombinedDataset = dataset
         self.model: Model = model
         self.device: torch.device = device
-        self.stock = {"name": None, "number": 0, "price": 0}
+        self.stock = {"name": None, "number": 0}
 
         self.price_scaler = torch.load('src/dataset/scalers/price_scaler.pkl')
         self.year_scaler = torch.load('src/dataset/scalers/year_scaler.pkl')
@@ -86,7 +91,52 @@ class TradingStrategy:
                 try:
                     self.strategy(year, month, day)
                 except Exception as e:
-                    print(
-                        f"Skipping day: {year, month, day} due to an exception")
+                    pass
+
+            print(
+                f"Money after month {month}: {self.money}")  # Will show a small number as it's the price after buying the stocks
 
         return self.money
+
+
+class MomentumTrading(TradingStrategy):
+    def __init__(self, starting_price: int, dataset: CombinedDataset, model: Model, device: torch.device) -> None:
+        super().__init__(starting_price, dataset, model, device)
+
+    def buy_stock(self, profits: list[torch.tensor], X: torch.tensor) -> None:
+        best_profit = max(profits)
+        best_company = profits.index(best_profit)
+
+        name = X[best_company, -1, 0]
+        price = self.price_scaler.inverse_transform([[X[best_company, -1, 1]]])
+        number = self.money // price
+
+        self.stock = {"name": name, "number": number}
+
+        self.money -= number * price
+
+    def sell_stock(self, X: torch.tensor) -> None:
+        name = self.stock["name"].to(torch.long)
+
+        price = self.price_scaler.inverse_transform([[X[name, -1, 1]]])
+
+        self.money += self.stock["number"] * price
+
+    def strategy(self, year: int, month: int, day: int) -> None:
+        data = self.calculate_profits(year, month, day)
+
+        profits: list[torch.tensor] = data['profits']
+        X: torch.tensor = data['data']
+
+        if self.stock["name"] is None:
+            self.buy_stock(profits, X)
+
+        else:
+            self.sell_stock(X)
+
+            self.buy_stock(profits, X)
+
+
+strategy = MomentumTrading(100_000, dataset, model, device)
+
+strategy.loop(2023)

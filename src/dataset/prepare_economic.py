@@ -55,7 +55,7 @@ PPI = process_alpha_vantage_df(PPI)
 
 
 def process_gdp(df: pd.DataFrame) -> pd.DataFrame:
-    df = df.resample('MS').pad()
+    df = df.resample('MS').ffill()
     return df
 
 
