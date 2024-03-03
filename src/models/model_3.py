@@ -19,6 +19,9 @@ class EconomyModel(nn.Module):
             self.lstms.append(LSTMWithAttention(hidden_size,
                                                 hidden_size, 1, dropout, bidirectional))
 
+        self.encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(hidden_size, 8, hidden_size * 4, dropout, self.activation, batch_first=True), num_layers)
+
         self.fc_1 = nn.Linear(hidden_size * 12, hidden_size)
         self.fc_2 = nn.Linear(hidden_size, 1)
 

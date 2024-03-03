@@ -8,7 +8,7 @@ from calendar import monthrange
 import pandas as pd
 
 from model import Model
-from utils import HistoricalDataset, CombinedDataset
+from utils import CombinedDataset
 
 
 dataset = torch.load('src/dataset/combined_dataset.pt')
@@ -30,6 +30,11 @@ try:
     model.load_state_dict(torch.load('src/testing/model.pt'))
 except:
     pass
+
+
+def log(file: str, text: str) -> None:
+    with open(file, 'a') as f:
+        f.write(text + '\n')
 
 
 class TradingStrategy:
@@ -117,12 +122,25 @@ class MomentumTrading(TradingStrategy):
 
         self.money -= number * price
 
+        log('src/testing/momentum_trading.log',
+            f"Bought {number} stocks from {name} for {price} each. Total: {self.money}")
+
     def sell_stock(self, X: torch.tensor) -> None:
         name = self.stock["name"].to(torch.long)
 
-        price = self.price_scaler.inverse_transform([[X[name, -1, 3].cpu()]])
+        index = 100
+        for i in range(X.shape[0]):
+            if X[i, -1, 6].cpu() == name.cpu():
+                index = i
+                break
+
+        price = self.price_scaler.inverse_transform(
+            [[X[index, -1, 3].cpu()]])
 
         self.money += self.stock["number"] * price
+
+        log('src/testing/momentum_trading.log',
+            f"Sold {self.stock['number']} stocks for {price} each. Total: {self.money}\n")
 
         self.stock = {"name": None, "number": 0}
 

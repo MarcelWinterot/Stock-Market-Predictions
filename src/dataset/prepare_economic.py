@@ -5,6 +5,8 @@ import pandas as pd
 from sklearn.preprocessing import MinMaxScaler
 import torch
 
+NUM_PREVIOUS_MONTHS = 11
+
 CPI = pd.read_csv('src/dataset/economic_data/CPI.csv')
 NONFARM_PAYROLL = pd.read_csv('src/dataset/economic_data/NONFARM_PAYROLL.csv')
 REAL_GDP = pd.read_csv('src/dataset/economic_data/REAL_GDP.csv')
@@ -127,8 +129,6 @@ print(df.head())
 print(df.tail())
 
 X = torch.tensor(df.values).float()
-
-NUM_PREVIOUS_MONTHS = 11
 
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 

@@ -6,7 +6,7 @@ import torch.nn as nn
 import torch
 
 from model import Model
-from utils import HistoricalDataset, CombinedDataset
+from utils import CombinedDataset
 
 
 dataset = torch.load('src/dataset/combined_dataset.pt')
