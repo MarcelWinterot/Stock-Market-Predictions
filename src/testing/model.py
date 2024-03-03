@@ -64,7 +64,8 @@ class Model(nn.Module):
 
         self.economy = EconomyModel(8, 3, dropout, True)
 
-        d_ff = hidden_size * 15
+        num_variables = 16
+        d_ff = hidden_size * num_variables
         self.hidden_size = hidden_size
 
         encoder = nn.TransformerEncoderLayer(
@@ -75,9 +76,9 @@ class Model(nn.Module):
             hidden_size, n_heads, d_ff, dropout, self.activation, batch_first=True)
         self.decoder = nn.TransformerDecoder(decoder, n_layers)
 
-        self.fc_1 = nn.Linear(hidden_size * 15, hidden_size)
-        self.fc_2 = nn.Linear(hidden_size, 15)
-        self.fc_3 = nn.Linear(15, 1)
+        self.fc_1 = nn.Linear(hidden_size * num_variables, hidden_size)
+        self.fc_2 = nn.Linear(hidden_size, num_variables)
+        self.fc_3 = nn.Linear(num_variables, 1)
 
         self.fcs = nn.ModuleList([self.fc_1, self.fc_2, self.fc_3])
 
@@ -88,8 +89,8 @@ class Model(nn.Module):
 
         X = torch.cat((X, economic), dim=2).permute(0, 2, 1)
 
-        X[:, 0] = self.name_embedding(
-            X[:, 0].long()).squeeze(2)
+        X[:, 6] = self.name_embedding(
+            X[:, 6].long()).squeeze(2)
 
         encoder_out = self.encoder(X)
         X = self.decoder(X, encoder_out)

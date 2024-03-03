@@ -202,9 +202,17 @@ with open('src/dataset/scalers/rsi_scaler.pkl', 'wb') as f:
 with open('src/dataset/scalers/wma_scaler.pkl', 'wb') as f:
     torch.save(wma_scaler, f)
 
-X = df[['name', 'Open', 'High', 'Low', 'Adj Close',
-        'Volume', 'day', 'month', 'year', 'weekday', 'ATR', 'VWAP', 'RSI', 'WMA']]
-y = df['Close']
+# X = df[['name', 'Open', 'High', 'Low', 'Close', 'Adj Close',
+#         'Volume', 'day', 'month', 'year', 'weekday', 'ATR', 'VWAP', 'RSI', 'WMA']]
+
+X = df
+y = df['Close'].shift(-1)
+
+X = X[:-1]
+y = y[:-1]
+
+print(X.head())
+print(y.head())
 
 
 X = torch.tensor(X.values, dtype=torch.float32)
@@ -216,17 +224,17 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 df = pd.DataFrame(X.numpy())
 
-unique_stocks = df[0].unique()
+unique_stocks = df[6].unique()
 
 print(f"Num unique stocks: {len(unique_stocks)}")
 
 stock_indexes = []
 
-for stock in df[0].unique():
-    stock_indexes.append(df[df[0] == stock].index[0])  # Starting index
-    stock_indexes.append(df[df[0] == stock].index[-1])  # Ending index
+for stock in df[6].unique():
+    stock_indexes.append(df[df[6] == stock].index[0])  # Starting index
+    stock_indexes.append(df[df[6] == stock].index[-1])  # Ending index
 
-X = X.reshape(-1, 1, 14)
+X = X.reshape(-1, 1, X.shape[1])
 
 print(X.shape)
 print(y.shape)

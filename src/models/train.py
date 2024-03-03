@@ -28,12 +28,13 @@ torch.backends.cudnn.benchmark = False
 # Training variables
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_WORKERS = 8
-EPOCHS = 35
+EPOCHS = 20
 BATCH_SIZE = 64
 TEST_BATCH_SIZE = 1000
 K = 10
-PATIENCE = 10
+PATIENCE = 20
 LR = 2e-4
+BETAS = (0.75, 0.999)
 
 # Model variables
 HIDDEN_SIZE = 30
@@ -55,7 +56,7 @@ except:
 dataset = torch.load('src/dataset/combined_dataset.pt')
 
 criterion = torch.nn.SmoothL1Loss()
-optimizer = optim.Adam(model.parameters(), lr=LR)
+optimizer = optim.Adam(model.parameters(), lr=LR, betas=BETAS)
 
 # lr_scheduler = torch.optim.lr_scheduler.StepLR(
 #     optimizer, step_size=5, gamma=0.5)
@@ -123,8 +124,6 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
         best_model_state = model.state_dict()
         print(f"Fold {fold}")
 
-        model.apply(reset_weights)
-
         train_loader = DataLoader(
             dataset, batch_size=BATCH_SIZE, sampler=SubsetRandomSampler(train_ids))
         test_loader = DataLoader(
@@ -154,7 +153,8 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
                 lrs.step()
 
         torch.save(best_model_state, f'./model_fold_{fold}.pt')
-        exit()
+
+        model.apply(reset_weights)
 
 
 k_fold_cv(K, dataset, model, optimizer, criterion, PATIENCE, lr_scheduler)

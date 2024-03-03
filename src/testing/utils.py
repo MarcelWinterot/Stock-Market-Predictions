@@ -30,8 +30,8 @@ class CombinedDataset(Dataset):
         X = self.X[index]
         y = self.y[index]
 
-        year = X[-1, 8]
-        month = X[-1, 7]
+        year = X[-1, 9]
+        month = X[-1, 8]
 
         economic_indicators = self.economic_indicators[(
             self.economic_indicators[:, -1, -1] == year) & (self.economic_indicators[:, -1, -2] == month)]
@@ -48,14 +48,12 @@ class CombinedDataset(Dataset):
         month = month.repeat(X_df.shape[0])
         day = day.repeat(X_df.shape[0])
 
-        filtered_X = X_df[(X_df.iloc[:,  8] == year[0]) & (
-            X_df.iloc[:,  7] == month[0]) & (X_df.iloc[:,  6] == day[0])]
+        filtered_X = X_df[(X_df.iloc[:,  9] == year[0]) & (
+            X_df.iloc[:,  8] == month[0]) & (X_df.iloc[:,  7] == day[0])]
 
-        year = self.X[filtered_X.index][-1, -1, 8]
-        month = self.X[filtered_X.index][-1, -1, 7]
+        year = self.X[filtered_X.index][-1, -1, 9]
+        month = self.X[filtered_X.index][-1, -1, 8]
 
-        # economic_indicators = self.economic_indicators[(
-        #     self.economic_indicators[:, -1, -1] == year[0]) & (self.economic_indicators[:, -1, -2] == month[0])]
         economic_indicators = self.economic_indicators[(
             self.economic_indicators[:, -1, -1] == year) & (self.economic_indicators[:, -1, -2] == month)]
 

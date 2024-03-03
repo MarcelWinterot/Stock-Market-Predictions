@@ -16,8 +16,8 @@ class CombinedDataset(torch.utils.data.Dataset):
         X = self.X[index]
         y = self.y[index]
 
-        year = X[-1, 8]
-        month = X[-1, 7]
+        year = X[-1, 9]
+        month = X[-1, 8]
 
         economic_indicators = self.economic_indicators[(
             self.economic_indicators[:, -1, -1] == year) & (self.economic_indicators[:, -1, -2] == month)]
@@ -33,7 +33,7 @@ economic_indicators = torch.load('src/dataset/economic_dataset.pt')
 
 combined_dataset = CombinedDataset(dataset.X, dataset.y, economic_indicators)
 
-data = combined_dataset[196]
+data = combined_dataset[0]
 
 print(data['X'].shape, data['y'].shape, data['economic_indicators'].shape)
 

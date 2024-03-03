@@ -35,6 +35,7 @@ except:
 class TradingStrategy:
     def __init__(self, starting_price: int, dataset: CombinedDataset, model: Model, device: torch.device) -> None:
         self.money: float = starting_price
+        self.money_before_buying: float = starting_price  # Purely cosmetic
         self.dataset: CombinedDataset = dataset
         self.model: Model = model
         self.device: torch.device = device
@@ -94,7 +95,7 @@ class TradingStrategy:
                     pass
 
             print(
-                f"Money after month {month}: {self.money}")  # Will show a small number as it's the price after buying the stocks
+                f"Money after month {month}: {self.money_before_buying}")
 
         return self.money
 
@@ -107,8 +108,9 @@ class MomentumTrading(TradingStrategy):
         best_profit = max(profits)
         best_company = profits.index(best_profit)
 
-        name = X[best_company, -1, 0]
-        price = self.price_scaler.inverse_transform([[X[best_company, -1, 1]]])
+        name = X[best_company, -1, 6]
+        price = self.price_scaler.inverse_transform(
+            [[X[best_company, -1, 3].cpu()]])
         number = self.money // price
 
         self.stock = {"name": name, "number": number}
@@ -118,9 +120,13 @@ class MomentumTrading(TradingStrategy):
     def sell_stock(self, X: torch.tensor) -> None:
         name = self.stock["name"].to(torch.long)
 
-        price = self.price_scaler.inverse_transform([[X[name, -1, 1]]])
+        price = self.price_scaler.inverse_transform([[X[name, -1, 3].cpu()]])
 
         self.money += self.stock["number"] * price
+
+        self.stock = {"name": None, "number": 0}
+
+        self.money_before_buying = self.money
 
     def strategy(self, year: int, month: int, day: int) -> None:
         data = self.calculate_profits(year, month, day)
