@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 import torch
@@ -5,11 +6,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 from torch.utils.data import DataLoader, SubsetRandomSampler
+from pytorch_forecasting import MAPE
 
 from tqdm import tqdm
 from sklearn.model_selection import KFold, TimeSeriesSplit
 
-from model_3 import Model_3 as Model
+from model_4 import Model_4 as Model
 from utils import HistoricalDataset, CombinedDataset
 
 torch.autograd.set_detect_anomaly(True)
@@ -34,7 +36,7 @@ TEST_BATCH_SIZE = 1000
 K = 10
 PATIENCE = 20
 LR = 2e-4
-BETAS = (0.75, 0.999)
+BETAS = (0.9, 0.999)
 
 # Model variables
 HIDDEN_SIZE = 30
@@ -42,10 +44,13 @@ NUM_LAYERS = 5
 DROPOUT = 0.0
 BIDIRECTIONAL = True
 NUM_STOCKS = 10
+HMM_STATES = 3
+HMM_OBSERVATIONS = 1
 
 N_HEADS = 6
 
-model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS, NUM_STOCKS).to(device)
+model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS,
+              NUM_STOCKS).to(device)
 
 try:
     model.load_state_dict(torch.load('src/models/model.pt'))
@@ -57,6 +62,7 @@ dataset = torch.load('src/dataset/combined_dataset.pt')
 
 criterion = torch.nn.SmoothL1Loss()
 optimizer = optim.Adam(model.parameters(), lr=LR, betas=BETAS)
+mape = MAPE()
 
 # lr_scheduler = torch.optim.lr_scheduler.StepLR(
 #     optimizer, step_size=5, gamma=0.5)
@@ -68,6 +74,7 @@ def train(epoch, dataloader, model, optimizer, criterion):
 
     for epoch in range(epoch):
         running_loss = 0.0
+        running_mape_loss = 0.0
         print(f"Epoch: {epoch}")
         for data in tqdm(dataloader):
             X, y, economic_indicators = data['X'].to(device), data['y'].to(
@@ -85,15 +92,21 @@ def train(epoch, dataloader, model, optimizer, criterion):
 
             running_loss += loss.item()
 
-        print(f"Loss: {running_loss / len(dataloader)}")
+            with torch.no_grad():
+                running_mape_loss += mape(out, y).item()
+
+        print(
+            f"Loss: {running_loss / len(dataloader)}, MAPE: {running_mape_loss / len(dataloader)}")
+
         optimizer.zero_grad()
 
-    return running_loss / len(dataloader)
+    return (running_loss / len(dataloader), running_mape_loss / len(dataloader))
 
 
 def test(dataloader, model, criterion):
     model.eval()
     running_loss = 0.0
+    running_mape_loss = 0.0
     for data in tqdm(dataloader):
         X, y, economic_indicators = data['X'].to(device), data['y'].to(
             device), data['economic_indicators'].to(device)
@@ -105,7 +118,10 @@ def test(dataloader, model, criterion):
 
         running_loss += loss.item()
 
-    return running_loss / len(dataloader)
+        with torch.no_grad():
+            running_mape_loss += mape(out, y).item()
+
+    return (running_loss / len(dataloader), running_mape_loss / len(dataloader))
 
 
 def reset_weights(m):
@@ -132,7 +148,7 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
         for epoch in range(EPOCHS):
             train(1, train_loader, model, optimizer, criterion)
 
-            loss = test(test_loader, model, criterion)
+            loss, mape_loss = test(test_loader, model, criterion)
 
             if loss < best_loss:
                 best_loss = loss
@@ -147,7 +163,7 @@ def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optim
                 break
 
             print(
-                F"Epoch {epoch} loss: {loss} in test set")
+                F"Epoch {epoch} loss: {loss} mape loss: {mape_loss} in test set")
 
             if lrs is not None:
                 lrs.step()

@@ -1,27 +1,10 @@
-from utils import DAIN_Layer
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-
-class LSTMWithAttention(nn.Module):
-    def __init__(self, input_size: int, hidden_size: int, num_layers: int, dropout: float = 0.0, bidirectional: bool = True) -> None:
-        super(LSTMWithAttention, self).__init__()
-        self.bidirectional_modification = 2 if bidirectional else 1
-
-        self.lstm = nn.LSTM(input_size, hidden_size // self.bidirectional_modification, num_layers,
-                            batch_first=True, dropout=dropout, bidirectional=bidirectional)
-
-        self.attn = nn.MultiheadAttention(
-            hidden_size, 1, dropout=dropout, batch_first=True)
-
-    def forward(self, X: torch.tensor) -> torch.tensor:
-        X, _ = self.lstm(X)
-
-        X = self.attn(X, X, X)[0]
-
-        return X
+from model_2 import LSTMWithAttention
+from norm import DAIN_Layer
 
 
 class EconomyModel(nn.Module):
@@ -55,9 +38,9 @@ class EconomyModel(nn.Module):
         return X
 
 
-class Model(nn.Module):
+class Model_4(nn.Module):
     def __init__(self, hidden_size: int = 30, n_heads: int = 8, dropout: float = 0.1, n_layers: int = 5, num_stocks: int = 10):
-        super(Model, self).__init__()
+        super(Model_4, self).__init__()
         self.name_embedding = nn.Embedding(num_stocks, 1)
         self.activation = nn.PReLU()
         self.drop = nn.Dropout(dropout)

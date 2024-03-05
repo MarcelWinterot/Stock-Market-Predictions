@@ -8,8 +8,8 @@
 
 ### Strategic resources and luxury resources - https://www.alphavantage.co/documentation/
 
-### FinBERT - https://arxiv.org/pdf/1908.10063.pdf
-
 ### Gold prices - https://fred.stlouisfed.org/series/PCU2122212122210
 
 ### Indicators - https://engrxiv.org/preprint/view/2745/5135
+
+### Deep Adaptive Input Normalization- https://arxiv.org/pdf/1902.07892.pdf
