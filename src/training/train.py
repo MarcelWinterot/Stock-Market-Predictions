@@ -11,8 +11,9 @@ from pytorch_forecasting import MAPE
 from tqdm import tqdm
 from sklearn.model_selection import KFold, TimeSeriesSplit
 
-from model_4 import Model_4 as Model
-from utils import HistoricalDataset, CombinedDataset
+from models.model_4 import Model_4 as Model
+from models.utils import HistoricalDataset, CombinedDataset
+from models.StackedRNNs import Stack, StackedRNNs
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -42,15 +43,12 @@ BETAS = (0.9, 0.999)
 HIDDEN_SIZE = 30
 NUM_LAYERS = 5
 DROPOUT = 0.0
-BIDIRECTIONAL = True
+NUM_STACKS = 5
+NUM_LAYERS_PER_STACK = 4
 NUM_STOCKS = 10
-HMM_STATES = 3
-HMM_OBSERVATIONS = 1
 
-N_HEADS = 6
-
-model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS,
-              NUM_STOCKS).to(device)
+model = StackedRNNs(NUM_STACKS, NUM_LAYERS_PER_STACK,
+                    HIDDEN_SIZE, DROPOUT, NUM_STOCKS).to(device)
 
 try:
     model.load_state_dict(torch.load('src/models/model.pt'))

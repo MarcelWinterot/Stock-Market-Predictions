@@ -8,7 +8,7 @@ import torch.nn.functional as F
 
 
 class LSTMWithAttention(nn.Module):
-    def __init__(self, input_size: int, hidden_size: int, num_layers: int, dropout: float = 0.0, bidirectional: bool = True) -> None:
+    def __init__(self, input_size: int, hidden_size: int, num_layers: int, dropout: float = 0.0, bidirectional: bool = True, norm: nn.Module = None) -> None:
         super(LSTMWithAttention, self).__init__()
         self.bidirectional_modification = 2 if bidirectional else 1
 
@@ -18,10 +18,15 @@ class LSTMWithAttention(nn.Module):
         self.attn = nn.MultiheadAttention(
             hidden_size, 1, dropout=dropout, batch_first=True)
 
-    def forward(self, X: torch.tensor) -> torch.tensor:
-        X, _ = self.lstm(X)
+        self.norm = norm
 
-        X = self.attn(X, X, X)[0]
+    def forward(self, X: torch.tensor) -> torch.tensor:
+        if self.norm is not None:
+            X = self.norm(self.lstm(X)[0])
+            X = self.norm(self.attn(X, X, X)[0])
+        else:
+            X = self.lstm(X)[0]
+            X = self.attn(X, X, X)[0]
 
         return X
 

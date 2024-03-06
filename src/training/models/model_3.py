@@ -3,8 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from model_2 import LSTMWithAttention
-from norm import DAIN_Layer
+from models.model_2 import LSTMWithAttention
 
 
 class EconomyModel(nn.Module):
@@ -38,9 +37,9 @@ class EconomyModel(nn.Module):
         return X
 
 
-class Model_4(nn.Module):
+class Model_3(nn.Module):
     def __init__(self, hidden_size: int = 30, n_heads: int = 8, dropout: float = 0.1, n_layers: int = 5, num_stocks: int = 10):
-        super(Model_4, self).__init__()
+        super(Model_3, self).__init__()
         self.name_embedding = nn.Embedding(num_stocks, 1)
         self.activation = nn.PReLU()
         self.drop = nn.Dropout(dropout)
@@ -54,13 +53,11 @@ class Model_4(nn.Module):
 
         encoder = nn.TransformerEncoderLayer(
             hidden_size, n_heads, d_ff, dropout, self.activation, batch_first=True)
-        self.encoder = nn.TransformerEncoder(
-            encoder, n_layers, norm=DAIN_Layer(input_dim=num_variables))
+        self.encoder = nn.TransformerEncoder(encoder, n_layers)
 
         decoder = nn.TransformerDecoderLayer(
             hidden_size, n_heads, d_ff, dropout, self.activation, batch_first=True)
-        self.decoder = nn.TransformerDecoder(
-            decoder, n_layers, norm=DAIN_Layer(input_dim=num_variables))
+        self.decoder = nn.TransformerDecoder(decoder, n_layers)
 
         self.fc_1 = nn.Linear(hidden_size * num_variables, hidden_size)
         self.fc_2 = nn.Linear(hidden_size, num_variables)

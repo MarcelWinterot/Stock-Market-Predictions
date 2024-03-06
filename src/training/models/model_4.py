@@ -3,7 +3,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from model_2 import LSTMWithAttention
+from models.model_2 import LSTMWithAttention
+from models.norm import DAIN_Layer
 
 
 class EconomyModel(nn.Module):
@@ -37,9 +38,10 @@ class EconomyModel(nn.Module):
         return X
 
 
-class Model_3(nn.Module):
+class Model_4(nn.Module):
     def __init__(self, hidden_size: int = 30, n_heads: int = 8, dropout: float = 0.1, n_layers: int = 5, num_stocks: int = 10):
-        super(Model_3, self).__init__()
+        super(Model_4, self).__init__()
+        bidirectional = True
         self.name_embedding = nn.Embedding(num_stocks, 1)
         self.activation = nn.PReLU()
         self.drop = nn.Dropout(dropout)
@@ -51,15 +53,13 @@ class Model_3(nn.Module):
         d_ff = hidden_size * num_variables
         self.hidden_size = hidden_size
 
-        encoder = nn.TransformerEncoderLayer(
-            hidden_size, n_heads, d_ff, dropout, self.activation, batch_first=True)
-        self.encoder = nn.TransformerEncoder(encoder, n_layers)
+        self.lstms = nn.ModuleList([])
 
-        decoder = nn.TransformerDecoderLayer(
-            hidden_size, n_heads, d_ff, dropout, self.activation, batch_first=True)
-        self.decoder = nn.TransformerDecoder(decoder, n_layers)
+        for _ in range(n_layers):
+            self.lstms.append(LSTMWithAttention(hidden_size,
+                                                hidden_size, 1, dropout, bidirectional, DAIN_Layer(input_dim=num_variables)))
 
-        self.fc_1 = nn.Linear(hidden_size * num_variables, hidden_size)
+        self.fc_1 = nn.Linear(d_ff, hidden_size)
         self.fc_2 = nn.Linear(hidden_size, num_variables)
         self.fc_3 = nn.Linear(num_variables, 1)
 
@@ -75,8 +75,8 @@ class Model_3(nn.Module):
         X[:, 6] = self.name_embedding(
             X[:, 6].long()).squeeze(2)
 
-        encoder_out = self.encoder(X)
-        X = self.decoder(X, encoder_out)
+        for lstm in self.lstms:
+            X = lstm(X)
 
         X = self.flatten(X)
 

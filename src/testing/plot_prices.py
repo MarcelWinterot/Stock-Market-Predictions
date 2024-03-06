@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import torch.nn as nn
 import torch
 
-from model import Model
+from model import StackedRNNs as Model
 from utils import CombinedDataset
 
 
@@ -20,12 +20,9 @@ dataloader = DataLoader(dataset, 1024, False)
 HIDDEN_SIZE = 30
 NUM_LAYERS = 5
 DROPOUT = 0.0
-BIDIRECTIONAL = True
-NUM_STOCKS = 10
 
-N_HEADS = 6
+model = Model(5, 4, HIDDEN_SIZE, DROPOUT).to(device)
 
-model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT, NUM_LAYERS, NUM_STOCKS).to(device)
 model.load_state_dict(torch.load('src/testing/model.pt'))
 
 model.eval()

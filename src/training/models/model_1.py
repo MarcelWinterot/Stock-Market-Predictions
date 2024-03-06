@@ -6,7 +6,7 @@ Simple RNN with time2vec
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from utils import RNNBlock, Time2Vec
+from src.training.models.utils import RNNBlock, Time2Vec
 
 
 class MLP_Small(nn.Module):
