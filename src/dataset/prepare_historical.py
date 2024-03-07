@@ -7,7 +7,7 @@ from utils import HistoricalDataset
 import random
 
 
-NUM_PREVIOUS_DAYS = 29
+NUM_PREVIOUS_DAYS = 299
 
 
 def load_data(file):

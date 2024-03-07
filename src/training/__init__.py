@@ -7,4 +7,4 @@ from models.StackedRNNs import StackedRNNs, Stack
 
 from models.HMM import HMM
 from models.utils import RNNBlock, Time2Vec
-from models.norm import DAIN_Layer
+from models.norm import DAIN_Layer, RMSNorm

@@ -40,7 +40,7 @@ LR = 2e-4
 BETAS = (0.9, 0.999)
 
 # Model variables
-HIDDEN_SIZE = 30
+HIDDEN_SIZE = 300
 NUM_LAYERS = 5
 DROPOUT = 0.0
 NUM_STACKS = 5

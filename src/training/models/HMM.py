@@ -15,6 +15,12 @@ class HMM(torch.nn.Module):
     """
 
     def __init__(self, M: int, N: int):
+        """Initalizer for HMM class
+
+        Args:
+            M (int): number of possible observations
+            N (int): number of states
+        """
         super(HMM, self).__init__()
         self.M = M  # number of possible observations
         self.N = N  # number of states
@@ -47,11 +53,11 @@ class HMM(torch.nn.Module):
             log_alpha = log_alpha.cuda()
 
         log_alpha[:, 0, :] = self.emission_model(x[:, 0]) + log_state_priors
-        print(log_alpha[:, 0, :])
+        # print(log_alpha[:, 0, :])
         for t in range(1, T_max):
             log_alpha[:, t, :] = self.emission_model(
                 x[:, t]) + self.transition_model(log_alpha[:, t-1, :], use_max=False)
-            print(log_alpha[:, t, :])
+            # print(log_alpha[:, t, :])
 
         log_sums = log_alpha.logsumexp(dim=2)
 
@@ -227,6 +233,6 @@ class EmissionModel(torch.nn.Module):
         # Each col needs to add up to 1 (in probability domain)
         emission_matrix = torch.nn.functional.log_softmax(
             self.unnormalized_emission_matrix, dim=1)
-        out = emission_matrix[:, x_t].transpose(0, 1)
+        out = emission_matrix[:, x_t.to(torch.int)].transpose(0, 1)
 
         return out

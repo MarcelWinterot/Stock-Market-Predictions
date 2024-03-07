@@ -7,39 +7,40 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from models.HMM import HMM
 
-class EconomyModel(nn.Module):
-    def __init__(self, hidden_size: int = 8, num_stacks: int = 2, dropout: float = 0.0) -> None:
-        super(EconomyModel, self).__init__()
-        self.activation = nn.PReLU()
-        self.flatten = nn.Flatten()
 
-        self.stacks = nn.ModuleList([])
-        for _ in range(num_stacks):
-            self.stacks.append(
-                Stack(hidden_size, 4, dropout, self.activation, nn.LayerNorm(hidden_size)))
+class MLP(nn.Module):
+    def __init__(self, d_ff: int, hidden_size: int, num_variables: int, activation: callable, use_norm: bool = False) -> None:
+        super(MLP, self).__init__()
+        self.use_norm = use_norm
+        self.activation = activation
+        self.sigmoid = nn.Sigmoid()
 
-        self.fc_1 = nn.Linear(hidden_size * 12, hidden_size)
-        self.fc_2 = nn.Linear(hidden_size, 1)
+        self.fc_1 = nn.Linear(d_ff, hidden_size)
+        self.fc_2 = nn.Linear(hidden_size, num_variables)
+        self.fc_3 = nn.Linear(num_variables, 1)
+
+        if self.use_norm:
+            self.norm_1 = nn.LayerNorm(hidden_size)
+            self.norm_2 = nn.LayerNorm(num_variables)
 
     def forward(self, X: torch.tensor) -> torch.tensor:
-        Xss = []
-        for stack in self.stacks:
-            X, Xs = stack(X)
+        if self.use_norm:
+            X = self.activation(self.norm_1(self.fc_1(X)))
+            X = self.activation(self.norm_2(self.fc_2(X)))
+        else:
+            X = self.activation(self.fc_1(X))
+            X = self.activation(self.fc_2(X))
 
-            Xss.append(Xs)
+        X = self.fc_3(X)
+        X = self.hmm(X, torch.tensor([X.shape[1]]))
 
-        Xss = sum(Xss)
+        print(X.shape)
 
-        Xss = self.flatten(Xss)
+        X = self.sigmoid(X)
 
-        Xss = self.activation(self.fc_1(Xss))
-
-        Xss = self.fc_2(Xss)
-
-        Xss = F.sigmoid(Xss)
-
-        return Xss
+        return X
 
 
 class Stack(nn.Module):
@@ -59,20 +60,53 @@ class Stack(nn.Module):
 
         for layer in self.rnns:
             layer_out = layer(X)[0]
-
             Xs.append(layer_out)
 
             X = X - layer_out
 
-            if self.activation is not None:
-                X = self.activation(X)
-
             if self.norm is not None:
                 X = self.norm(X)
+
+            if self.activation is not None:
+                X = self.activation(X)
 
         Xs = sum(Xs)
 
         return (X, Xs)
+
+
+class EconomyModel(nn.Module):
+    def __init__(self, hidden_size: int = 8, num_stacks: int = 2, dropout: float = 0.0) -> None:
+        super(EconomyModel, self).__init__()
+        self.activation = nn.PReLU()
+        self.flatten = nn.Flatten()
+
+        self.stacks = nn.ModuleList([])
+        for _ in range(num_stacks):
+            self.stacks.append(
+                Stack(hidden_size, 4, dropout, self.activation, nn.LayerNorm(hidden_size)))
+
+        self.fc_1 = nn.Linear(hidden_size * 12, hidden_size)
+        self.fc_2 = nn.Linear(hidden_size, 1)
+
+    def forward(self, X: torch.tensor) -> torch.tensor:
+        Xs = []
+        for stack in self.stacks:
+            X, X2 = stack(X)
+
+            Xs.append(X2)
+
+        Xs = sum(Xs)
+
+        Xs = self.flatten(Xs)
+
+        Xs = self.activation(self.fc_1(Xs))
+
+        Xs = self.fc_2(Xs)
+
+        Xs = F.sigmoid(Xs)
+
+        return Xs
 
 
 class StackedRNNs(nn.Module):
@@ -95,11 +129,7 @@ class StackedRNNs(nn.Module):
 
         self.economy = EconomyModel(8, 2, dropout)
 
-        self.fc_1 = nn.Linear(d_ff, hidden_size)
-        self.fc_2 = nn.Linear(hidden_size, num_variables)
-        self.fc_3 = nn.Linear(num_variables, 1)
-
-        self.fcs = nn.ModuleList([self.fc_1, self.fc_2, self.fc_3])
+        self.mlp = MLP(d_ff, hidden_size, num_variables, self.activation)
 
     def forward(self, X, economic_indicators):
         economic = self.economy(economic_indicators)
@@ -111,23 +141,16 @@ class StackedRNNs(nn.Module):
         X[:, 6] = self.name_embedding(
             X[:, 6].long()).squeeze(2)
 
-        Xss = []
+        Xs = []
         for stack in self.stacks:
-            X, Xs = stack(X)
+            X, X2 = stack(X)
 
-            Xss.append(Xs)
+            Xs.append(X2)
 
-        Xss = sum(Xss)
+        Xs = sum(Xs)
 
-        Xss = self.flatten(Xss)
+        Xs = self.flatten(Xs)
 
-        for i, fc in enumerate(self.fcs):
-            if i != 2:
-                Xss = self.activation(fc(Xss))
+        Xs = self.mlp(Xs)
 
-            else:
-                Xss = fc(Xss)
-
-        Xss = F.sigmoid(Xss)
-
-        return Xss
+        return Xs
