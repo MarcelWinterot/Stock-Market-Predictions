@@ -7,8 +7,6 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
-from models.HMM import HMM
-
 
 class MLP(nn.Module):
     def __init__(self, d_ff: int, hidden_size: int, num_variables: int, activation: callable, use_norm: bool = False) -> None:
@@ -34,9 +32,6 @@ class MLP(nn.Module):
             X = self.activation(self.fc_2(X))
 
         X = self.fc_3(X)
-        X = self.hmm(X, torch.tensor([X.shape[1]]))
-
-        print(X.shape)
 
         X = self.sigmoid(X)
 
@@ -56,11 +51,11 @@ class Stack(nn.Module):
                                      batch_first=True, dropout=dropout))
 
     def forward(self, X: torch.tensor) -> tuple[torch.tensor]:
-        Xs = []
+        result = []
 
         for layer in self.rnns:
             layer_out = layer(X)[0]
-            Xs.append(layer_out)
+            result.append(layer_out)
 
             X = X - layer_out
 
@@ -70,9 +65,9 @@ class Stack(nn.Module):
             if self.activation is not None:
                 X = self.activation(X)
 
-        Xs = sum(Xs)
+        result = sum(result)
 
-        return (X, Xs)
+        return (X, result)
 
 
 class EconomyModel(nn.Module):
@@ -90,23 +85,23 @@ class EconomyModel(nn.Module):
         self.fc_2 = nn.Linear(hidden_size, 1)
 
     def forward(self, X: torch.tensor) -> torch.tensor:
-        Xs = []
+        result = []
         for stack in self.stacks:
             X, X2 = stack(X)
 
-            Xs.append(X2)
+            result.append(X2)
 
-        Xs = sum(Xs)
+        X = sum(result)
 
-        Xs = self.flatten(Xs)
+        X = self.flatten(X)
 
-        Xs = self.activation(self.fc_1(Xs))
+        X = self.activation(self.fc_1(X))
 
-        Xs = self.fc_2(Xs)
+        X = self.fc_2(X)
 
-        Xs = F.sigmoid(Xs)
+        X = F.sigmoid(X)
 
-        return Xs
+        return X
 
 
 class StackedRNNs(nn.Module):
@@ -141,16 +136,16 @@ class StackedRNNs(nn.Module):
         X[:, 6] = self.name_embedding(
             X[:, 6].long()).squeeze(2)
 
-        Xs = []
+        result = []
         for stack in self.stacks:
             X, X2 = stack(X)
 
-            Xs.append(X2)
+            result.append(X2)
 
-        Xs = sum(Xs)
+        X = sum(result)
 
-        Xs = self.flatten(Xs)
+        X = self.flatten(X)
 
-        Xs = self.mlp(Xs)
+        X = self.mlp(X)
 
-        return Xs
+        return X
