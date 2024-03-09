@@ -8,38 +8,34 @@ import torch.nn.functional as F
 import torch.optim as optim
 
 
-class EconomyModel(nn.Module):
-    def __init__(self, hidden_size: int = 8, num_stacks: int = 2, dropout: float = 0.0) -> None:
-        super(EconomyModel, self).__init__()
-        self.activation = nn.PReLU()
-        self.flatten = nn.Flatten()
+class MLP(nn.Module):
+    def __init__(self, d_ff: int, hidden_size: int, num_variables: int, activation: callable, use_norm: bool = False) -> None:
+        super(MLP, self).__init__()
+        self.use_norm = use_norm
+        self.activation = activation
+        self.sigmoid = nn.Sigmoid()
 
-        self.stacks = nn.ModuleList([])
-        for _ in range(num_stacks):
-            self.stacks.append(
-                Stack(hidden_size, 4, dropout, self.activation, nn.LayerNorm(hidden_size)))
+        self.fc_1 = nn.Linear(d_ff, hidden_size)
+        self.fc_2 = nn.Linear(hidden_size, num_variables)
+        self.fc_3 = nn.Linear(num_variables, 1)
 
-        self.fc_1 = nn.Linear(hidden_size * 12, hidden_size)
-        self.fc_2 = nn.Linear(hidden_size, 1)
+        if self.use_norm:
+            self.norm_1 = nn.LayerNorm(hidden_size)
+            self.norm_2 = nn.LayerNorm(num_variables)
 
     def forward(self, X: torch.tensor) -> torch.tensor:
-        Xss = []
-        for stack in self.stacks:
-            X, Xs = stack(X)
+        if self.use_norm:
+            X = self.activation(self.norm_1(self.fc_1(X)))
+            X = self.activation(self.norm_2(self.fc_2(X)))
+        else:
+            X = self.activation(self.fc_1(X))
+            X = self.activation(self.fc_2(X))
 
-            Xss.append(Xs)
+        X = self.fc_3(X)
 
-        Xss = sum(Xss)
+        X = self.sigmoid(X)
 
-        Xss = self.flatten(Xss)
-
-        Xss = self.activation(self.fc_1(Xss))
-
-        Xss = self.fc_2(Xss)
-
-        Xss = F.sigmoid(Xss)
-
-        return Xss
+        return X
 
 
 class Stack(nn.Module):
@@ -55,24 +51,57 @@ class Stack(nn.Module):
                                      batch_first=True, dropout=dropout))
 
     def forward(self, X: torch.tensor) -> tuple[torch.tensor]:
-        Xs = []
+        result = []
 
-        for layer in self.rnns:
+        for i, layer in enumerate(self.rnns):
             layer_out = layer(X)[0]
-
-            Xs.append(layer_out)
+            result.append(layer_out)
 
             X = X - layer_out
-
-            if self.activation is not None:
-                X = self.activation(X)
 
             if self.norm is not None:
                 X = self.norm(X)
 
-        Xs = sum(Xs)
+            if self.activation is not None:
+                X = self.activation(X)
 
-        return (X, Xs)
+        result = sum(result)
+
+        return (X, result)
+
+
+class EconomyModel(nn.Module):
+    def __init__(self, hidden_size: int = 8, num_stacks: int = 2, dropout: float = 0.0) -> None:
+        super(EconomyModel, self).__init__()
+        self.activation = nn.PReLU()
+        self.flatten = nn.Flatten()
+
+        self.stacks = nn.ModuleList([])
+        for _ in range(num_stacks):
+            self.stacks.append(
+                Stack(hidden_size, 4, dropout, self.activation, nn.LayerNorm(hidden_size)))
+
+        self.fc_1 = nn.Linear(hidden_size * 12, hidden_size)
+        self.fc_2 = nn.Linear(hidden_size, 1)
+
+    def forward(self, X: torch.tensor) -> torch.tensor:
+        result = []
+        for stack in self.stacks:
+            X, X2 = stack(X)
+
+            result.append(X2)
+
+        X = sum(result)
+
+        X = self.flatten(X)
+
+        X = self.activation(self.fc_1(X))
+
+        X = self.fc_2(X)
+
+        X = F.sigmoid(X)
+
+        return X
 
 
 class StackedRNNs(nn.Module):
@@ -95,11 +124,7 @@ class StackedRNNs(nn.Module):
 
         self.economy = EconomyModel(8, 2, dropout)
 
-        self.fc_1 = nn.Linear(d_ff, hidden_size)
-        self.fc_2 = nn.Linear(hidden_size, num_variables)
-        self.fc_3 = nn.Linear(num_variables, 1)
-
-        self.fcs = nn.ModuleList([self.fc_1, self.fc_2, self.fc_3])
+        self.mlp = MLP(d_ff, hidden_size, num_variables, self.activation)
 
     def forward(self, X, economic_indicators):
         economic = self.economy(economic_indicators)
@@ -111,23 +136,16 @@ class StackedRNNs(nn.Module):
         X[:, 6] = self.name_embedding(
             X[:, 6].long()).squeeze(2)
 
-        Xss = []
+        result = []
         for stack in self.stacks:
-            X, Xs = stack(X)
+            X, X2 = stack(X)
 
-            Xss.append(Xs)
+            result.append(X2)
 
-        Xss = sum(Xss)
+        X = sum(result)
 
-        Xss = self.flatten(Xss)
+        X = self.flatten(X)
 
-        for i, fc in enumerate(self.fcs):
-            if i != 2:
-                Xss = self.activation(fc(Xss))
+        X = self.mlp(X)
 
-            else:
-                Xss = fc(Xss)
-
-        Xss = F.sigmoid(Xss)
-
-        return Xss
+        return X

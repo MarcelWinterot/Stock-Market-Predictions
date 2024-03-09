@@ -17,11 +17,15 @@ y = dataset.y
 
 dataloader = DataLoader(dataset, 1024, False)
 
-HIDDEN_SIZE = 30
+HIDDEN_SIZE = 300
 NUM_LAYERS = 5
 DROPOUT = 0.0
+NUM_STACKS = 5
+NUM_LAYERS_PER_STACK = 4
+NUM_STOCKS = 10
 
-model = Model(5, 4, HIDDEN_SIZE, DROPOUT).to(device)
+model = Model(NUM_STACKS, NUM_LAYERS_PER_STACK,
+              HIDDEN_SIZE, DROPOUT, NUM_STOCKS).to(device)
 
 model.load_state_dict(torch.load('src/testing/model.pt'))
 

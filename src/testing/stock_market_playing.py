@@ -7,7 +7,7 @@ import numpy as np
 from calendar import monthrange
 import pandas as pd
 
-from model import Model
+from model import StackedRNNs as Model
 from utils import CombinedDataset
 
 
@@ -15,16 +15,15 @@ dataset = torch.load('src/dataset/combined_dataset.pt')
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
 
-HIDDEN_SIZE = 30
+HIDDEN_SIZE = 300
 NUM_LAYERS = 5
 DROPOUT = 0.0
-BIDIRECTIONAL = True
+NUM_STACKS = 5
+NUM_LAYERS_PER_STACK = 4
 NUM_STOCKS = 10
 
-N_HEADS = 6
-
-model = Model(HIDDEN_SIZE, N_HEADS, DROPOUT,
-              NUM_LAYERS, NUM_STOCKS).to(device)
+model = Model(NUM_STACKS, NUM_LAYERS_PER_STACK,
+              HIDDEN_SIZE, DROPOUT, NUM_STOCKS).to(device)
 
 try:
     model.load_state_dict(torch.load('src/testing/model.pt'))

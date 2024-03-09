@@ -236,3 +236,8 @@ class EmissionModel(torch.nn.Module):
         out = emission_matrix[:, x_t.to(torch.int)].transpose(0, 1)
 
         return out
+
+
+if __name__ == "__main__":
+    print(torch.__version__)
+    print(torch.cuda.is_available())

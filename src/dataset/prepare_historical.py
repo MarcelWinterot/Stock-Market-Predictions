@@ -264,8 +264,8 @@ y = y[mask]
 print(new_dataset.shape)
 print(y.shape)
 
-new_dataset = new_dataset.to(device)
-y = y.to(device)
+new_dataset = new_dataset
+y = y
 
 
 dataset = HistoricalDataset(new_dataset, y)

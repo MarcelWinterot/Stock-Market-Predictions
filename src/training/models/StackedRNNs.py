@@ -53,7 +53,7 @@ class Stack(nn.Module):
     def forward(self, X: torch.tensor) -> tuple[torch.tensor]:
         result = []
 
-        for layer in self.rnns:
+        for i, layer in enumerate(self.rnns):
             layer_out = layer(X)[0]
             result.append(layer_out)
 

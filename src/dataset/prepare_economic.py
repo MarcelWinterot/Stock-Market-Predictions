@@ -153,6 +153,6 @@ new_dataset = torch.tensor(np.array(new_dataset), dtype=torch.float32)
 
 print(new_dataset.shape)
 
-new_dataset = new_dataset.to(device)
+new_dataset = new_dataset
 
 torch.save(new_dataset, 'src/dataset/economic_dataset.pt')
