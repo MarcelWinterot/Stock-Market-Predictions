@@ -7,11 +7,12 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+from utils import NBeats
+
 
 class MLP(nn.Module):
-    def __init__(self, d_ff: int, hidden_size: int, num_variables: int, activation: callable, use_norm: bool = False) -> None:
+    def __init__(self, d_ff: int, hidden_size: int, num_variables: int, activation: callable) -> None:
         super(MLP, self).__init__()
-        self.use_norm = use_norm
         self.activation = activation
         self.sigmoid = nn.Sigmoid()
 
@@ -19,17 +20,9 @@ class MLP(nn.Module):
         self.fc_2 = nn.Linear(hidden_size, num_variables)
         self.fc_3 = nn.Linear(num_variables, 1)
 
-        if self.use_norm:
-            self.norm_1 = nn.LayerNorm(hidden_size)
-            self.norm_2 = nn.LayerNorm(num_variables)
-
     def forward(self, X: torch.tensor) -> torch.tensor:
-        if self.use_norm:
-            X = self.activation(self.norm_1(self.fc_1(X)))
-            X = self.activation(self.norm_2(self.fc_2(X)))
-        else:
-            X = self.activation(self.fc_1(X))
-            X = self.activation(self.fc_2(X))
+        X = self.activation(self.fc_1(X))
+        X = self.activation(self.fc_2(X))
 
         X = self.fc_3(X)
 
@@ -99,7 +92,7 @@ class EconomyModel(nn.Module):
 
         X = self.fc_2(X)
 
-        X = F.sigmoid(X)
+        X = F.tanh(X)
 
         return X
 
@@ -124,7 +117,11 @@ class StackedRNNs(nn.Module):
 
         self.economy = EconomyModel(8, 2, dropout)
 
-        self.mlp = MLP(d_ff, hidden_size, num_variables, self.activation)
+        # self.mlp = MLP(d_ff, hidden_size, num_variables, self.activation)
+        self.fc_1 = nn.Linear(d_ff, hidden_size)
+        self.fc_2 = nn.Linear(hidden_size, num_variables)
+        self.fc_3 = nn.Linear(num_variables, 1)
+        self.mlp_1 = NBeats(2, 4, hidden_size, self.activation)
 
     def forward(self, X, economic_indicators):
         economic = self.economy(economic_indicators)
@@ -146,6 +143,12 @@ class StackedRNNs(nn.Module):
 
         X = self.flatten(X)
 
-        X = self.mlp(X)
+        X = self.activation(self.fc_1(X))
+
+        X = self.mlp_1(X)
+
+        X = self.activation(self.fc_2(X))
+
+        X = F.sigmoid(self.fc_3(X))
 
         return X

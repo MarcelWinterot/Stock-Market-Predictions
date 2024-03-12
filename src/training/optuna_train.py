@@ -32,8 +32,8 @@ torch.backends.cudnn.benchmark = False
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_WORKERS = 8
 EPOCHS = 10
-BATCH_SIZE = 128
-TEST_BATCH_SIZE = 128
+BATCH_SIZE = 64
+TEST_BATCH_SIZE = 512
 K = 10
 PATIENCE = 20
 LR = 2e-4
@@ -139,8 +139,8 @@ def reset_weights(m):
 
 def objective(trial):
     # Parameters to optimize: lr, NUM_STACKS, NUM_LAYERS_PER_STACK
-    # LR = trial.suggest_float("lr", 1e-6, 1e-1, log=True)
-    NUM_STACKS = trial.suggest_int("NUM_STACKS", 1, 25)
+    LR = trial.suggest_float("lr", 1e-6, 1e-1, log=True)
+    # NUM_STACKS = trial.suggest_int("NUM_STACKS", 1, 25)
 
     model = StackedRNNs(NUM_STACKS, NUM_LAYERS_PER_STACK,
                         HIDDEN_SIZE, DROPOUT, NUM_STOCKS).to(device)
