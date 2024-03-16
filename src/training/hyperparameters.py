@@ -1,3 +1,4 @@
+import matplotlib.pyplot as plt
 import numpy as np
 import random
 import torch
@@ -34,14 +35,14 @@ BATCH_SIZE = 64
 TEST_BATCH_SIZE = 512
 K = 10
 PATIENCE = 20
-LR = 2e-4
+LR = 1e-4
 BETAS = (0.9, 0.999)
 
 # Model variables
 HIDDEN_SIZE = 300
+NUM_LAYERS = 5
 DROPOUT = 0.0
 NUM_STACKS = 5
-NUM_LAYERS = 5
 NUM_LAYERS_PER_STACK = 4
 NUM_STOCKS = 10
 
@@ -72,7 +73,6 @@ def train(epoch, dataloader, model, optimizer, criterion):
     for epoch in range(epoch):
         running_loss = 0.0
         running_mape_loss = 0.0
-        print(f"Epoch: {epoch}")
         for data in tqdm(dataloader):
             X, y, economic_indicators = data['X'].to(device), data['y'].to(
                 device), data['economic_indicators'].to(device)
@@ -91,9 +91,6 @@ def train(epoch, dataloader, model, optimizer, criterion):
 
             with torch.no_grad():
                 running_mape_loss += mape(out, y).item()
-
-        print(
-            f"Loss: {running_loss / len(dataloader)}, MAPE: {running_mape_loss / len(dataloader)}")
 
         optimizer.zero_grad()
 
@@ -121,53 +118,39 @@ def test(dataloader, model, criterion):
     return (running_loss / len(dataloader), running_mape_loss / len(dataloader))
 
 
-def reset_weights(m):
-    for layer in m.children():
-        if hasattr(layer, 'reset_parameters'):
-            layer.reset_parameters()
+def lr_fidner(start_lr: float, end_lr: float, num_iterations: int) -> list[float]:
+    return np.logspace(np.log10(start_lr), np.log10(end_lr), num_iterations)
 
 
-def k_fold_cv(k: int, dataset: torch.utils.data.Dataset, model: nn.Module, optimizer: torch.optim.Optimizer, criterion: nn.Module, patience: int = None, lrs: optim.lr_scheduler = None):
-    folds = KFold(n_splits=k, shuffle=True)
-    # folds = TimeSeriesSplit(n_splits=k)
-
-    for fold, (train_ids, test_ids) in enumerate(folds.split(dataset), 1):
-        current_patience = 0
-        best_loss = float("inf")
-        best_model_state = model.state_dict()
-        print(f"Fold {fold}")
-
-        train_loader = DataLoader(
-            dataset, batch_size=BATCH_SIZE, sampler=SubsetRandomSampler(train_ids))
-        test_loader = DataLoader(
-            dataset, batch_size=TEST_BATCH_SIZE, sampler=SubsetRandomSampler(test_ids))
-
-        for epoch in range(EPOCHS):
-            train(1, train_loader, model, optimizer, criterion)
-
-            loss, mape_loss = test(test_loader, model, criterion)
-
-            if loss < best_loss:
-                best_loss = loss
-                current_patience = 0
-                best_model_state = model.state_dict()
-            else:
-                current_patience += 1
-
-            if patience is not None and current_patience >= patience:
-                print(
-                    f"Stopping training due to model not improving over {patience} epochs")
-                break
-
-            print(
-                F"Epoch {epoch} loss: {loss} mape loss: {mape_loss} in test set")
-
-            if lrs is not None:
-                lrs.step()
-
-        torch.save(best_model_state, f'./model_fold_{fold}.pt')
-
-        model.apply(reset_weights)
+lrs = lr_fidner(1e-6, 1e-2, 25)
+losses = {}
 
 
-k_fold_cv(K, dataset, model, optimizer, criterion, PATIENCE, lr_scheduler)
+folds = KFold(n_splits=K, shuffle=True)
+train_id, test_id = folds.split(dataset).__next__()
+
+train_loader = DataLoader(
+    dataset, batch_size=BATCH_SIZE, sampler=SubsetRandomSampler(train_id))
+
+test_loader = DataLoader(
+    dataset, batch_size=TEST_BATCH_SIZE, sampler=SubsetRandomSampler(test_id))
+
+for lr in lrs:
+    print(f"Learning rate: {lr}")
+    optimizer = optim.Adam(model.parameters(), lr=lr, betas=BETAS)
+    train(1, train_loader, model, optimizer, criterion)
+    loss, mape_loss = test(test_loader, model, criterion)
+
+    losses[lr] = mape_loss
+
+    print(f"Loss: {loss}, MAPE: {mape_loss}")
+
+    optimizer.zero_grad()
+
+plt.plot(list(losses.keys()), list(losses.values()))
+
+plt.xscale('log')
+plt.xlabel('Learning rate')
+plt.ylabel('Loss')
+
+plt.show()
