@@ -20,10 +20,12 @@
 
 ## Model architectures yet to test
 
-### 1. Custom transformers for time series predictions
+### 1. Patching the data
+
+### 2. Custom transformers for time series predictions
 
 #### It can be all kind of transformers like PatchTST or an original design that prioritizes later inputs
 
-### 2. HMMs
+### 3. HMMs
 
-### 3. TimesFM
+### 4. TimesFM
