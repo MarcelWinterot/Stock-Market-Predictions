@@ -12,6 +12,7 @@ from sklearn.model_selection import KFold, TimeSeriesSplit
 
 from models.utils import HistoricalDataset, CombinedDataset
 from models.StackedRNNs import StackedRNNs
+from models.PatchRNN import PatchRNNs
 
 torch.autograd.set_detect_anomaly(True)
 
@@ -29,7 +30,7 @@ torch.backends.cudnn.benchmark = False
 # Training variables
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 NUM_WORKERS = 8
-EPOCHS = 10
+EPOCHS = 30
 BATCH_SIZE = 64
 TEST_BATCH_SIZE = 512
 K = 10
@@ -40,13 +41,16 @@ BETAS = (0.9, 0.999)
 # Model variables
 HIDDEN_SIZE = 300
 DROPOUT = 0.0
+NUM_PATCHES = 5
 NUM_STACKS = 5
 NUM_LAYERS = 5
 NUM_LAYERS_PER_STACK = 4
 NUM_STOCKS = 10
 
-model = StackedRNNs(NUM_STACKS, NUM_LAYERS_PER_STACK,
-                    HIDDEN_SIZE, DROPOUT, NUM_STOCKS).to(device)
+# model = StackedRNNs(NUM_STACKS, NUM_LAYERS_PER_STACK,
+#                     HIDDEN_SIZE, DROPOUT, NUM_STOCKS).to(device)
+model = PatchRNNs(NUM_PATCHES, NUM_STACKS, NUM_LAYERS, HIDDEN_SIZE,
+                  DROPOUT, NUM_STOCKS).to(device)
 
 try:
     model.load_state_dict(torch.load('src/training/model.pt'))

@@ -1,5 +1,5 @@
 """
-Architecture inspired by the paper N-Beats 
+Architecture inspired by N-Beats and PatchTST models
 """
 
 import torch
@@ -32,23 +32,18 @@ class MLP(nn.Module):
 
 
 class Stack(nn.Module):
-    def __init__(self, hidden_size: int, num_layers: int = 4, dropout: float = 0.0, activation: callable = None, norm: callable = None, num_heads: int = 1) -> None:
+    def __init__(self, hidden_size: int, num_layers: int = 4, dropout: float = 0.0, activation: callable = None, norm: callable = None) -> None:
         super(Stack, self).__init__()
         self.rnns = nn.ModuleList([])
         self.activation = activation
         self.norm = norm
         self.num_layers = num_layers
 
-        # self.mha = nn.MultiheadAttention(
-        #     hidden_size, num_heads, dropout=dropout, batch_first=True)
-
         for _ in range(num_layers):
             self.rnns.append(nn.LSTM(hidden_size, hidden_size, 1,
                                      batch_first=True, dropout=dropout))
 
     def forward(self, X: torch.tensor) -> tuple[torch.tensor]:
-        # X = X + self.mha(X, X, X)[0]
-
         result = []
 
         for i, layer in enumerate(self.rnns):
@@ -102,9 +97,11 @@ class EconomyModel(nn.Module):
         return X
 
 
-class StackedRNNs(nn.Module):
-    def __init__(self, num_stacks: int = 5, num_layers_per_stack: int = 4, hidden_size: int = 30, dropout: float = 0.0, num_stocks: int = 10) -> None:
-        super(StackedRNNs, self).__init__()
+class PatchRNNs(nn.Module):
+    def __init__(self, num_patches: int, num_stacks_per_patch: int, num_layers_per_stack: int, hidden_size: int, dropout: float, num_stocks: int = 10) -> None:
+        super(PatchRNNs, self).__init__()
+        assert hidden_size % num_patches == 0, "Hidden size must be divisible by the number of patches"
+
         self.name_embedding = nn.Embedding(num_stocks, 1)
         self.activation = nn.PReLU()
         self.flatten = nn.Flatten()
@@ -112,13 +109,12 @@ class StackedRNNs(nn.Module):
         num_variables = 16
         d_ff = hidden_size * num_variables
         self.hidden_size = hidden_size
+        self.num_patches = num_patches
 
-        self.stacks = nn.ModuleList([])
-        for _ in range(num_stacks):
-            self.stacks.append(
-                Stack(hidden_size, num_layers_per_stack, dropout, self.activation, nn.LayerNorm(hidden_size)))
+        self.patches = nn.ModuleList([nn.ModuleList([Stack(hidden_size // self.num_patches, num_layers_per_stack, dropout, self.activation, nn.LayerNorm(hidden_size // self.num_patches))
+                                      for _ in range(num_stacks_per_patch)]) for _ in range(num_patches)])
 
-        self.num_stacks = num_stacks
+        self.num_stacks = num_stacks_per_patch
 
         self.economy = EconomyModel(8, 2, dropout)
 
@@ -138,13 +134,20 @@ class StackedRNNs(nn.Module):
         X[:, 6] = self.name_embedding(
             X[:, 6].long()).squeeze(2)
 
-        result = [torch.zeros_like(X) for _ in range(self.num_stacks)]
-        for i, stack in enumerate(self.stacks):
-            X, X2 = stack(X)
+        X = torch.chunk(X, self.num_patches, dim=2)
 
-            result[i] = X2
+        new_X = [torch.zeros_like(patch) for patch in X]
 
-        X = sum(result)
+        for i, patch in enumerate(X):
+            result = [torch.zeros_like(patch) for _ in range(self.num_patches)]
+            for j, stack in enumerate(self.patches[i]):
+                patch, patch2 = stack(patch)
+
+                result[j] = patch2
+
+            new_X[i] = sum(result)
+
+        X = torch.cat(new_X, dim=2)
 
         X = self.flatten(X)
 

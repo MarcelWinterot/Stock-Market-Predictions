@@ -18,14 +18,14 @@
 
 #### Architecutre simillar to N-Beats, perform a lot better than any previous architecture I've tested
 
+### 5. Dividing the data into patches
+
+#### Performs a little worse than Stacked RNNs, although it may be due to the hyperparameters
+
 ## Model architectures yet to test
 
-### 1. Patching the data
-
-### 2. Custom transformers for time series predictions
+### 1. Custom transformers for time series predictions
 
 #### It can be all kind of transformers like PatchTST or an original design that prioritizes later inputs
 
-### 3. HMMs
-
-### 4. TimesFM
+### 2. HMMs
